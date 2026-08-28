@@ -1,6 +1,6 @@
 import pygame
 
-from src import minimap, settings, world
+from src import minimap, raycaster, settings, world
 from src.player import Player
 
 
@@ -34,7 +34,8 @@ class Game:
 
     def draw(self):
         """Compose the frame and present it."""
-        minimap.draw(self.screen, self.player, self.debug_scale)
+        hits = raycaster.cast_all(self.player)
+        minimap.draw(self.screen, self.player, self.debug_scale, hits)
         pygame.display.flip()
 
     def run(self):

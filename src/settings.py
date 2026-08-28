@@ -11,6 +11,9 @@ TILE_SIZE = 64
 
 ROTATION_SPEED = math.radians(150)  # radians per second
 
+FOV = math.radians(60)  # horizontal field of view
+NUM_RAYS = SCREEN_WIDTH  # one ray per screen column
+
 CEILING_COLOR = (28, 30, 38)
 FLOOR_COLOR = (58, 52, 46)
 FOG_COLOR = CEILING_COLOR
@@ -28,5 +31,7 @@ DEBUG_PLAYER_COLOR = (214, 62, 54)  # the player marker
 DEBUG_HEADING_COLOR = (250, 190, 70)  # the line showing where the player looks
 DEBUG_PLAYER_RADIUS = 0.16  # marker radius, in world units
 DEBUG_HEADING_LENGTH = 0.9  # heading line length, in world units
-DEBUG_RAY_COLOR = (30, 158, 182)  # cast rays
+DEBUG_RAY_COLOR = (30, 158, 182)  # the straight-ahead ray
 DEBUG_HIT_COLOR = (226, 46, 120)  # the exact point where a ray meets a wall
+DEBUG_FAN_COLOR = (96, 176, 194)  # the rest of the vision cone
+DEBUG_RAY_STRIDE = 8  # draw every Nth ray only, so single rays stay visible

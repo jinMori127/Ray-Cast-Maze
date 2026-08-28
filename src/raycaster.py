@@ -2,12 +2,19 @@
 
 import math
 
-from src import world
+from src import settings, world
 
 EPSILON = 1e-9
 
 SIDE_EW = 0  # ray crossed a vertical grid line, so it hit an east/west facing wall
 SIDE_NS = 1  # ray crossed a horizontal grid line, so it hit a north/south facing wall
+
+# per-column ray angle relative to the view direction, evenly spaced across the projection plane
+_HALF_PLANE = math.tan(settings.FOV / 2)
+RAY_OFFSETS = [
+    math.atan((2.0 * (column + 0.5) / settings.NUM_RAYS - 1.0) * _HALF_PLANE)
+    for column in range(settings.NUM_RAYS)
+]
 
 
 def cast_ray(px, py, angle):
@@ -51,3 +58,9 @@ def cast_ray(px, py, angle):
 
     distance = side_dist_x - delta_x if side == SIDE_EW else side_dist_y - delta_y
     return distance, tile, side, px + distance * dir_x, py + distance * dir_y
+
+
+def cast_all(player):
+    """One ray per screen column; each hit is (ray_angle, distance, tile, side, hit_x, hit_y)."""
+    px, py, angle = player.x, player.y, player.angle
+    return [(angle + offset,) + cast_ray(px, py, angle + offset) for offset in RAY_OFFSETS]

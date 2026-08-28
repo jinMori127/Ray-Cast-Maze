@@ -2,7 +2,7 @@
 
 import pygame
 
-from src import raycaster, settings, world
+from src import settings, world
 
 
 def fit_scale(surface):
@@ -24,11 +24,12 @@ def to_screen(x, y, scale, org):
     return round(left + x * scale), round(top + y * scale)
 
 
-def draw(surface, player, scale):
-    """Draw the world from above, player marker on top."""
+def draw(surface, player, scale, hits):
+    """Draw the world from above with the vision cone and the player marker on top."""
     org = origin(surface, scale)
-    distance, _, _, hit_x, hit_y = raycaster.cast_ray(player.x, player.y, player.angle)
+    _, distance, _, _, hit_x, hit_y = hits[len(hits) // 2]
     _draw_grid(surface, scale, org)
+    _draw_fan(surface, player, hits, scale, org)
     _draw_center_ray(surface, player, (hit_x, hit_y), scale, org)
     _draw_player(surface, player, distance, scale, org)
 
@@ -54,6 +55,13 @@ def _draw_grid(surface, scale, org):
     for row in range(world.MAP_HEIGHT + 1):
         y = top + row * scale
         pygame.draw.line(surface, settings.DEBUG_GRID_COLOR, (left, y), (left + width, y))
+
+
+def _draw_fan(surface, player, hits, scale, org):
+    """Every Nth ray of the vision cone, from the player out to the wall it found."""
+    start = to_screen(player.x, player.y, scale, org)
+    for _, _, _, _, hit_x, hit_y in hits[:: settings.DEBUG_RAY_STRIDE]:
+        pygame.draw.line(surface, settings.DEBUG_FAN_COLOR, start, to_screen(hit_x, hit_y, scale, org))
 
 
 def _draw_center_ray(surface, player, hit_point, scale, org):
