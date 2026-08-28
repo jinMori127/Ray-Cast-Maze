@@ -10,9 +10,8 @@ SIDE_EW = 0  # ray crossed a vertical grid line, so it hit an east/west facing w
 SIDE_NS = 1  # ray crossed a horizontal grid line, so it hit a north/south facing wall
 
 # per-column ray angle relative to the view direction, evenly spaced across the projection plane
-_HALF_PLANE = math.tan(settings.FOV / 2)
 RAY_OFFSETS = [
-    math.atan((2.0 * (column + 0.5) / settings.NUM_RAYS - 1.0) * _HALF_PLANE)
+    math.atan((2.0 * (column + 0.5) / settings.NUM_RAYS - 1.0) * settings.PLANE_HALF_WIDTH)
     for column in range(settings.NUM_RAYS)
 ]
 

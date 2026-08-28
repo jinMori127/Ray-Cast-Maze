@@ -5,7 +5,8 @@ import pygame
 from src import settings
 
 HORIZON = settings.SCREEN_HEIGHT // 2
-WALL_SCALE = settings.SCREEN_HEIGHT  # pixel height of a one-unit wall seen from one unit away
+# distance to the projection plane in pixels, so both axes share one perspective scale
+WALL_SCALE = settings.SCREEN_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
 
 

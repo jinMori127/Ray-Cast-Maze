@@ -13,6 +13,7 @@ ROTATION_SPEED = math.radians(150)  # radians per second
 
 FOV = math.radians(60)  # horizontal field of view
 NUM_RAYS = SCREEN_WIDTH  # one ray per screen column
+PLANE_HALF_WIDTH = math.tan(FOV / 2)  # half the projection plane, one unit from the camera
 
 CEILING_COLOR = (28, 30, 38)
 FLOOR_COLOR = (58, 52, 46)
