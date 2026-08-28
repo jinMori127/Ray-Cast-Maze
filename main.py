@@ -1,6 +1,6 @@
 import pygame
 
-from src import settings, world
+from src import minimap, settings, world
 from src.player import Player
 
 
@@ -15,6 +15,7 @@ class Game:
         self.dt = 0.0
         self.running = True
         self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
+        self.debug_scale = minimap.fit_scale(self.screen)
 
     def handle_events(self):
         """Drain the event queue and set the quit flag."""
@@ -29,7 +30,7 @@ class Game:
 
     def draw(self):
         """Compose the frame and present it."""
-        self.screen.fill(settings.CEILING_COLOR)
+        minimap.draw(self.screen, self.player, self.debug_scale)
         pygame.display.flip()
 
     def run(self):
