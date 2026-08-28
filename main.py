@@ -1,6 +1,6 @@
 import pygame
 
-import settings
+from src import settings
 
 
 class Game:
