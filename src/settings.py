@@ -18,6 +18,13 @@ CEILING_COLOR = (28, 30, 38)
 FLOOR_COLOR = (58, 52, 46)
 FOG_COLOR = CEILING_COLOR
 
+WALL_COLORS = {  # first-person wall faces, keyed by tile id
+    1: (150, 96, 68),  # border brick
+    2: (104, 116, 138),  # inner stone
+    3: (176, 138, 70),  # central chamber
+}
+WALL_UNKNOWN_COLOR = (220, 60, 60)  # tile id missing from the palette — a bug, not a wall type
+
 DEBUG_BACKGROUND_COLOR = (10, 11, 14)  # outside the grid
 DEBUG_FLOOR_COLOR = (198, 202, 210)  # walkable cells — bright so corridors read as paths
 DEBUG_GRID_COLOR = (122, 128, 140)  # cell borders, mid tone to stay visible on floor and walls
