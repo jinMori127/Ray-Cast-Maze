@@ -1,6 +1,7 @@
 import pygame
 
-from src import settings
+from src import settings, world
+from src.player import Player
 
 
 class Game:
@@ -13,6 +14,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.dt = 0.0
         self.running = True
+        self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
 
     def handle_events(self):
         """Drain the event queue and set the quit flag."""
