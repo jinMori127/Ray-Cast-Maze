@@ -18,9 +18,22 @@ def origin(surface, scale):
     )
 
 
+def to_screen(x, y, scale, org):
+    """World position to a pixel in the top-down view."""
+    left, top = org
+    return round(left + x * scale), round(top + y * scale)
+
+
 def draw(surface, player, scale):
-    """Draw the grid from above: floor bed, wall cells colored by tile id, then grid lines."""
-    left, top = origin(surface, scale)
+    """Draw the world from above, player marker on top."""
+    org = origin(surface, scale)
+    _draw_grid(surface, scale, org)
+    _draw_player(surface, player, scale, org)
+
+
+def _draw_grid(surface, scale, org):
+    """Floor bed, wall cells colored by tile id, then the cell lines."""
+    left, top = org
     width, height = world.MAP_WIDTH * scale, world.MAP_HEIGHT * scale
 
     surface.fill(settings.DEBUG_BACKGROUND_COLOR)
@@ -39,3 +52,17 @@ def draw(surface, player, scale):
     for row in range(world.MAP_HEIGHT + 1):
         y = top + row * scale
         pygame.draw.line(surface, settings.DEBUG_GRID_COLOR, (left, y), (left + width, y))
+
+
+def _draw_player(surface, player, scale, org):
+    """Marker at the player position with a line along the view direction."""
+    dir_x, dir_y = player.direction
+    center = to_screen(player.x, player.y, scale, org)
+    heading = to_screen(
+        player.x + dir_x * settings.DEBUG_HEADING_LENGTH,
+        player.y + dir_y * settings.DEBUG_HEADING_LENGTH,
+        scale,
+        org,
+    )
+    pygame.draw.line(surface, settings.DEBUG_HEADING_COLOR, center, heading, max(1, scale // 16))
+    pygame.draw.circle(surface, settings.DEBUG_PLAYER_COLOR, center, max(2, round(settings.DEBUG_PLAYER_RADIUS * scale)))

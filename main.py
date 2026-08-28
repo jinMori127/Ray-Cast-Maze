@@ -27,6 +27,10 @@ class Game:
 
     def update(self):
         """Advance the world by self.dt seconds."""
+        keys = pygame.key.get_pressed()
+        turn = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
+        if turn:
+            self.player.turn(turn * settings.ROTATION_SPEED * self.dt)
 
     def draw(self):
         """Compose the frame and present it."""

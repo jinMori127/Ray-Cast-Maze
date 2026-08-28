@@ -15,3 +15,7 @@ class Player:
     def direction(self):
         """Unit forward vector (cos, sin) for the current angle."""
         return math.cos(self.angle), math.sin(self.angle)
+
+    def turn(self, delta):
+        """Rotate the view by delta radians, kept wrapped into [0, 2*pi)."""
+        self.angle = (self.angle + delta) % math.tau
