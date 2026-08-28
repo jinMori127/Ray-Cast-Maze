@@ -2,7 +2,7 @@
 
 import pygame
 
-from src import settings, world
+from src import raycaster, settings, world
 
 
 def fit_scale(surface):
@@ -27,8 +27,10 @@ def to_screen(x, y, scale, org):
 def draw(surface, player, scale):
     """Draw the world from above, player marker on top."""
     org = origin(surface, scale)
+    distance, _, _, hit_x, hit_y = raycaster.cast_ray(player.x, player.y, player.angle)
     _draw_grid(surface, scale, org)
-    _draw_player(surface, player, scale, org)
+    _draw_center_ray(surface, player, (hit_x, hit_y), scale, org)
+    _draw_player(surface, player, distance, scale, org)
 
 
 def _draw_grid(surface, scale, org):
@@ -54,15 +56,19 @@ def _draw_grid(surface, scale, org):
         pygame.draw.line(surface, settings.DEBUG_GRID_COLOR, (left, y), (left + width, y))
 
 
-def _draw_player(surface, player, scale, org):
-    """Marker at the player position with a line along the view direction."""
+def _draw_center_ray(surface, player, hit_point, scale, org):
+    """The straight-ahead ray, ending in a dot on the exact wall hit point."""
+    start = to_screen(player.x, player.y, scale, org)
+    hit = to_screen(hit_point[0], hit_point[1], scale, org)
+    pygame.draw.line(surface, settings.DEBUG_RAY_COLOR, start, hit, max(1, scale // 24))
+    pygame.draw.circle(surface, settings.DEBUG_HIT_COLOR, hit, max(2, scale // 10))
+
+
+def _draw_player(surface, player, wall_distance, scale, org):
+    """Marker at the player position, with a heading line stopping short of the wall ahead."""
     dir_x, dir_y = player.direction
+    length = min(settings.DEBUG_HEADING_LENGTH, wall_distance)
     center = to_screen(player.x, player.y, scale, org)
-    heading = to_screen(
-        player.x + dir_x * settings.DEBUG_HEADING_LENGTH,
-        player.y + dir_y * settings.DEBUG_HEADING_LENGTH,
-        scale,
-        org,
-    )
+    heading = to_screen(player.x + dir_x * length, player.y + dir_y * length, scale, org)
     pygame.draw.line(surface, settings.DEBUG_HEADING_COLOR, center, heading, max(1, scale // 16))
     pygame.draw.circle(surface, settings.DEBUG_PLAYER_COLOR, center, max(2, round(settings.DEBUG_PLAYER_RADIUS * scale)))

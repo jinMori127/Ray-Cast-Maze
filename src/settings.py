@@ -28,3 +28,5 @@ DEBUG_PLAYER_COLOR = (214, 62, 54)  # the player marker
 DEBUG_HEADING_COLOR = (250, 190, 70)  # the line showing where the player looks
 DEBUG_PLAYER_RADIUS = 0.16  # marker radius, in world units
 DEBUG_HEADING_LENGTH = 0.9  # heading line length, in world units
+DEBUG_RAY_COLOR = (30, 158, 182)  # cast rays
+DEBUG_HIT_COLOR = (226, 46, 120)  # the exact point where a ray meets a wall
