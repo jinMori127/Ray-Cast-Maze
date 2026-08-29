@@ -9,6 +9,7 @@ CAPTION = "Ray-Cast Maze"
 
 TILE_SIZE = 64
 
+MOVE_SPEED = 3.0  # world units (cells) per second
 ROTATION_SPEED = math.radians(150)  # radians per second
 
 FOV = math.radians(60)  # horizontal field of view
