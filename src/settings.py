@@ -33,6 +33,10 @@ WALL_COLORS = {  # first-person wall faces, keyed by tile id
 }
 WALL_UNKNOWN_COLOR = (220, 60, 60)  # tile id missing from the palette — a bug, not a wall type
 
+LIGHT_DIRECTION = (-0.6, -0.8)  # unit vector pointing toward the light, in world space
+AMBIENT_LIGHT = 0.40  # base level every face receives, however it is turned
+DIFFUSE_LIGHT = 0.75  # weight on the Lambert term; ambient + diffuse * 0.8 reaches exactly 1.0
+
 HUD_COLOR = (226, 232, 240)  # near-white, readable over the fogged scene and the debug backdrop
 HUD_FONT_NAME = "consolas,dejavusansmono,couriernew,monospace"  # first one installed wins
 HUD_FONT_SIZE = 18
@@ -55,3 +59,9 @@ DEBUG_RAY_COLOR = (30, 158, 182)  # the straight-ahead ray
 DEBUG_HIT_COLOR = (226, 46, 120)  # the exact point where a ray meets a wall
 DEBUG_FAN_COLOR = (96, 176, 194)  # the rest of the vision cone
 DEBUG_RAY_STRIDE = 8  # draw every Nth ray only, so single rays stay visible
+
+MINIMAP_SCALE = 8  # pixels per cell in the corner overlay
+MINIMAP_MARGIN = 12  # inset from the screen corner, in pixels
+MINIMAP_ALPHA = 165  # opacity of the whole panel, so the 3D view still reads through it
+MINIMAP_RAY_STRIDE = 20  # far fewer rays than the debug view — the panel is 16x smaller
+MINIMAP_BORDER_COLOR = (150, 156, 168)  # frame that separates the panel from the scene

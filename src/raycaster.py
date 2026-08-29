@@ -9,6 +9,14 @@ EPSILON = 1e-9
 SIDE_EW = 0  # ray crossed a vertical grid line, so it hit an east/west facing wall
 SIDE_NS = 1  # ray crossed a horizontal grid line, so it hit a north/south facing wall
 
+# Which of the four faces the ray struck. side is FACE >> 1, so the pair still says which
+# grid line was crossed, while the value itself names the outward normal for shading.
+FACE_WEST = 0
+FACE_EAST = 1
+FACE_NORTH = 2
+FACE_SOUTH = 3
+FACE_NORMALS = ((-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0))
+
 # per-column ray angle relative to the view direction, evenly spaced across the projection plane
 RAY_OFFSETS = [
     math.atan((2.0 * (column + 0.5) / settings.NUM_RAYS - 1.0) * settings.PLANE_HALF_WIDTH)
@@ -17,7 +25,7 @@ RAY_OFFSETS = [
 
 
 def cast_ray(px, py, angle):
-    """March a ray to the first wall; returns (distance, tile, side, u, hit_x, hit_y)."""
+    """March a ray to the first wall; returns (distance, tile, facing, u, hit_x, hit_y)."""
     dir_x, dir_y = math.cos(angle), math.sin(angle)
     if abs(dir_x) < EPSILON:
         dir_x = math.copysign(EPSILON, dir_x)
@@ -63,21 +71,21 @@ def cast_ray(px, py, angle):
     # west / east / north / south faces. Negating instead of taking 1 - frac keeps a hit
     # exactly on a cell corner at u = 0 rather than wrapping it to an out-of-range 1.0.
     if side == SIDE_EW:
-        along = -hit_y if dir_x > 0 else hit_y
+        facing, along = (FACE_WEST, -hit_y) if dir_x > 0 else (FACE_EAST, hit_y)
     else:
-        along = hit_x if dir_y > 0 else -hit_x
+        facing, along = (FACE_NORTH, hit_x) if dir_y > 0 else (FACE_SOUTH, -hit_x)
     u = along - math.floor(along)
 
-    return distance, tile, side, u, hit_x, hit_y
+    return distance, tile, facing, u, hit_x, hit_y
 
 
 def cast_all(player):
-    """One ray per column; a hit is (ray_angle, distance, perp_dist, tile, side, u, hit_x, hit_y)."""
+    """One ray per column; a hit is (ray_angle, distance, perp_dist, tile, facing, u, hit_x, hit_y)."""
     px, py, angle = player.x, player.y, player.angle
     hits = []
     for offset in RAY_OFFSETS:
         # offset is the ray's angle off the view axis, so its cosine projects the ray
         # length onto that axis — the depth the perspective divide needs
-        distance, tile, side, u, hit_x, hit_y = cast_ray(px, py, angle + offset)
-        hits.append((angle + offset, distance, distance * math.cos(offset), tile, side, u, hit_x, hit_y))
+        distance, tile, facing, u, hit_x, hit_y = cast_ray(px, py, angle + offset)
+        hits.append((angle + offset, distance, distance * math.cos(offset), tile, facing, u, hit_x, hit_y))
     return hits

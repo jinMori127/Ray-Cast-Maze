@@ -1,21 +1,47 @@
-"""Top-down view of the grid — the debugger for every later rendering task."""
+"""Top-down view of the grid — a corner overlay while playing, full screen on TAB."""
 
 import pygame
 
 from src import settings, world
 
+_grid_cache = {}  # keyed by scale: the map never changes, so each size is painted once
+_overlay = None
+
+
+def draw_overlay(surface, player, hits):
+    """The map, a thinned vision cone and the player, on a translucent corner panel."""
+    global _overlay
+    scale = settings.MINIMAP_SCALE
+    grid = _grid(scale)
+    if _overlay is None:
+        _overlay = pygame.Surface(grid.get_size()).convert()
+        _overlay.set_alpha(settings.MINIMAP_ALPHA)
+
+    _overlay.blit(grid, (0, 0))
+    _draw_fan(_overlay, player, hits, scale, (0, 0), settings.MINIMAP_RAY_STRIDE)
+    _draw_player(_overlay, player, hits[len(hits) // 2][1], scale, (0, 0))
+
+    corner = (surface.get_width() - _overlay.get_width() - settings.MINIMAP_MARGIN, settings.MINIMAP_MARGIN)
+    surface.blit(_overlay, corner)
+    pygame.draw.rect(surface, settings.MINIMAP_BORDER_COLOR, (*corner, *_overlay.get_size()), 1)
+
+
+def draw_debug(surface, player, hits):
+    """Full-screen debugger: the whole cone, the centre ray and its exact hit point."""
+    scale = fit_scale(surface)
+    org = _centered_origin(surface, scale)
+    _, distance, _, _, _, _, hit_x, hit_y = hits[len(hits) // 2]
+
+    surface.fill(settings.DEBUG_BACKGROUND_COLOR)
+    surface.blit(_grid(scale), org)
+    _draw_fan(surface, player, hits, scale, org, settings.DEBUG_RAY_STRIDE)
+    _draw_center_ray(surface, player, (hit_x, hit_y), scale, org)
+    _draw_player(surface, player, distance, scale, org)
+
 
 def fit_scale(surface):
     """Largest whole pixels-per-cell that shows the entire grid on this surface."""
     return min(surface.get_width() // world.MAP_WIDTH, surface.get_height() // world.MAP_HEIGHT)
-
-
-def origin(surface, scale):
-    """Top-left pixel of the grid, centered on the surface."""
-    return (
-        (surface.get_width() - world.MAP_WIDTH * scale) // 2,
-        (surface.get_height() - world.MAP_HEIGHT * scale) // 2,
-    )
 
 
 def to_screen(x, y, scale, org):
@@ -24,43 +50,48 @@ def to_screen(x, y, scale, org):
     return round(left + x * scale), round(top + y * scale)
 
 
-def draw(surface, player, scale, hits):
-    """Draw the world from above with the vision cone and the player marker on top."""
-    org = origin(surface, scale)
-    _, distance, _, _, _, _, hit_x, hit_y = hits[len(hits) // 2]
-    _draw_grid(surface, scale, org)
-    _draw_fan(surface, player, hits, scale, org)
-    _draw_center_ray(surface, player, (hit_x, hit_y), scale, org)
-    _draw_player(surface, player, distance, scale, org)
+def _centered_origin(surface, scale):
+    """Top-left pixel of the grid, centered on the surface."""
+    return (
+        (surface.get_width() - world.MAP_WIDTH * scale) // 2,
+        (surface.get_height() - world.MAP_HEIGHT * scale) // 2,
+    )
 
 
-def _draw_grid(surface, scale, org):
+def _grid(scale):
+    """The static half of the view at this scale, painted on the first frame that asks for it."""
+    grid = _grid_cache.get(scale)
+    if grid is None:
+        grid = pygame.Surface((world.MAP_WIDTH * scale, world.MAP_HEIGHT * scale)).convert()
+        _paint_grid(grid, scale)
+        _grid_cache[scale] = grid
+    return grid
+
+
+def _paint_grid(grid, scale):
     """Floor bed, wall cells colored by tile id, then the cell lines."""
-    left, top = org
-    width, height = world.MAP_WIDTH * scale, world.MAP_HEIGHT * scale
-
-    surface.fill(settings.DEBUG_BACKGROUND_COLOR)
-    pygame.draw.rect(surface, settings.DEBUG_FLOOR_COLOR, (left, top, width, height))
+    width, height = grid.get_size()
+    grid.fill(settings.DEBUG_FLOOR_COLOR)
 
     for row in range(world.MAP_HEIGHT):
         for col in range(world.MAP_WIDTH):
             tile = world.MAP[row][col]
             if tile != world.EMPTY:
                 color = settings.DEBUG_WALL_COLORS.get(tile, settings.DEBUG_UNKNOWN_COLOR)
-                pygame.draw.rect(surface, color, (left + col * scale, top + row * scale, scale, scale))
+                pygame.draw.rect(grid, color, (col * scale, row * scale, scale, scale))
 
     for col in range(world.MAP_WIDTH + 1):
-        x = left + col * scale
-        pygame.draw.line(surface, settings.DEBUG_GRID_COLOR, (x, top), (x, top + height))
+        x = min(col * scale, width - 1)  # the closing line lands one pixel inside, not off the surface
+        pygame.draw.line(grid, settings.DEBUG_GRID_COLOR, (x, 0), (x, height))
     for row in range(world.MAP_HEIGHT + 1):
-        y = top + row * scale
-        pygame.draw.line(surface, settings.DEBUG_GRID_COLOR, (left, y), (left + width, y))
+        y = min(row * scale, height - 1)
+        pygame.draw.line(grid, settings.DEBUG_GRID_COLOR, (0, y), (width, y))
 
 
-def _draw_fan(surface, player, hits, scale, org):
+def _draw_fan(surface, player, hits, scale, org, stride):
     """Every Nth ray of the vision cone, from the player out to the wall it found."""
     start = to_screen(player.x, player.y, scale, org)
-    for _, _, _, _, _, _, hit_x, hit_y in hits[:: settings.DEBUG_RAY_STRIDE]:
+    for _, _, _, _, _, _, hit_x, hit_y in hits[::stride]:
         pygame.draw.line(surface, settings.DEBUG_FAN_COLOR, start, to_screen(hit_x, hit_y, scale, org))
 
 

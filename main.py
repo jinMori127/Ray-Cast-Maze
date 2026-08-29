@@ -17,8 +17,8 @@ class Game:
         self.running = True
         self.textures = textures.load_textures()
         self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
-        self.debug_scale = minimap.fit_scale(self.screen)
         self.debug_view = False
+        self.minimap_visible = True
 
     def handle_events(self):
         """Drain the event queue and set the quit flag."""
@@ -30,6 +30,8 @@ class Game:
                     self.running = False
                 elif event.key == pygame.K_TAB:
                     self.debug_view = not self.debug_view
+                elif event.key == pygame.K_m:
+                    self.minimap_visible = not self.minimap_visible
 
     def update(self):
         """Advance the world by self.dt seconds."""
@@ -39,10 +41,12 @@ class Game:
         """Compose the frame and present it."""
         hits = raycaster.cast_all(self.player)
         if self.debug_view:
-            minimap.draw(self.screen, self.player, self.debug_scale, hits)
+            minimap.draw_debug(self.screen, self.player, hits)
         else:
             renderer.draw_world(hits, self.textures)
             renderer.present(self.screen)
+            if self.minimap_visible:
+                minimap.draw_overlay(self.screen, self.player, hits)
         self.draw_fps()
         pygame.display.flip()
 
