@@ -12,6 +12,7 @@ class Game:
         self.screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
         pygame.display.set_caption(settings.CAPTION)
         self.clock = pygame.time.Clock()
+        self.font = pygame.font.SysFont(settings.HUD_FONT_NAME, settings.HUD_FONT_SIZE)
         self.dt = 0.0
         self.running = True
         self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
@@ -40,7 +41,13 @@ class Game:
             minimap.draw(self.screen, self.player, self.debug_scale, hits)
         else:
             renderer.draw_world(self.screen, hits)
+        self.draw_fps()
         pygame.display.flip()
+
+    def draw_fps(self):
+        """Blit the rolling frame rate into the top-left corner, one decimal."""
+        readout = self.font.render(f"{self.clock.get_fps():5.1f} FPS", True, settings.HUD_COLOR)
+        self.screen.blit(readout, (settings.HUD_MARGIN, settings.HUD_MARGIN))
 
     def run(self):
         """Run until the quit flag drops, capped at settings.FPS."""
