@@ -19,6 +19,7 @@ def draw_overlay(surface, player, hits):
 
     _overlay.blit(grid, (0, 0))
     _draw_fan(_overlay, player, hits, scale, (0, 0), settings.MINIMAP_RAY_STRIDE)
+    _draw_goal(_overlay, scale, (0, 0))
     _draw_player(_overlay, player, hits[len(hits) // 2][1], scale, (0, 0))
 
     corner = (surface.get_width() - _overlay.get_width() - settings.MINIMAP_MARGIN, settings.MINIMAP_MARGIN)
@@ -35,6 +36,7 @@ def draw_debug(surface, player, hits):
     surface.fill(settings.DEBUG_BACKGROUND_COLOR)
     surface.blit(_grid(scale), org)
     _draw_fan(surface, player, hits, scale, org, settings.DEBUG_RAY_STRIDE)
+    _draw_goal(surface, scale, org)
     _draw_center_ray(surface, player, (hit_x, hit_y), scale, org)
     _draw_player(surface, player, distance, scale, org)
 
@@ -93,6 +95,15 @@ def _draw_fan(surface, player, hits, scale, org, stride):
     start = to_screen(player.x, player.y, scale, org)
     for _, _, _, _, _, _, hit_x, hit_y in hits[::stride]:
         pygame.draw.line(surface, settings.DEBUG_FAN_COLOR, start, to_screen(hit_x, hit_y, scale, org))
+
+
+def _draw_goal(surface, scale, org):
+    """The exit cell, painted over the vision cone so it stays legible when rays cross it."""
+    left, top = org
+    col, row = world.GOAL_CELL
+    cell = (left + col * scale, top + row * scale, scale, scale)
+    pygame.draw.rect(surface, settings.DEBUG_GOAL_COLOR, cell)
+    pygame.draw.rect(surface, settings.DEBUG_GOAL_OUTLINE_COLOR, cell, 1)
 
 
 def _draw_center_ray(surface, player, hit_point, scale, org):

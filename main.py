@@ -13,12 +13,16 @@ class Game:
         pygame.display.set_caption(settings.CAPTION)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont(settings.HUD_FONT_NAME, settings.HUD_FONT_SIZE)
+        self.banner_font = pygame.font.SysFont(settings.HUD_FONT_NAME, settings.BANNER_FONT_SIZE, bold=True)
+        self.dim = pygame.Surface(self.screen.get_size()).convert()
+        self.dim.fill(settings.BANNER_DIM_COLOR)
+        self.dim.set_alpha(settings.BANNER_DIM_ALPHA)
         self.dt = 0.0
         self.running = True
         self.textures = textures.load_textures()
-        self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
         self.debug_view = False
         self.minimap_visible = True
+        self.restart()
 
     def handle_events(self):
         """Drain the event queue and set the quit flag."""
@@ -32,10 +36,20 @@ class Game:
                     self.debug_view = not self.debug_view
                 elif event.key == pygame.K_m:
                     self.minimap_visible = not self.minimap_visible
+                elif event.key == pygame.K_r:
+                    self.restart()
+
+    def restart(self):
+        """Put the player back on the spawn tile and open the run again."""
+        self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
+        self.won = False
 
     def update(self):
-        """Advance the world by self.dt seconds."""
+        """Advance the world by self.dt seconds; an escaped player is frozen where they stand."""
+        if self.won:
+            return
         self.player.update(pygame.key.get_pressed(), self.dt)
+        self.won = world.at_goal(self.player.x, self.player.y)
 
     def draw(self):
         """Compose the frame and present it."""
@@ -47,8 +61,19 @@ class Game:
             renderer.present(self.screen)
             if self.minimap_visible:
                 minimap.draw_overlay(self.screen, self.player, hits)
+        if self.won:
+            self.draw_banner()
         self.draw_fps()
         pygame.display.flip()
+
+    def draw_banner(self):
+        """Fade the frozen frame down and centre the end-of-run message on it."""
+        self.screen.blit(self.dim, (0, 0))
+        message = self.banner_font.render(settings.WIN_TEXT, True, settings.BANNER_COLOR)
+        hint = self.font.render(settings.WIN_HINT, True, settings.HUD_COLOR)
+        message_rect = message.get_rect(center=self.screen.get_rect().center)
+        self.screen.blit(message, message_rect)
+        self.screen.blit(hint, hint.get_rect(midtop=(message_rect.centerx, message_rect.bottom + settings.BANNER_GAP)))
 
     def draw_fps(self):
         """Blit the rolling frame rate into the top-left corner, one decimal."""

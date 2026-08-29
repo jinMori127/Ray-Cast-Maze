@@ -42,6 +42,14 @@ HUD_FONT_NAME = "consolas,dejavusansmono,couriernew,monospace"  # first one inst
 HUD_FONT_SIZE = 18
 HUD_MARGIN = 8  # inset from the screen corner, in pixels
 
+WIN_TEXT = "ESCAPED"
+WIN_HINT = "R to restart - Esc to quit"
+BANNER_FONT_SIZE = 72
+BANNER_COLOR = (250, 226, 140)  # warm gold, nothing else in the palette is close to it
+BANNER_GAP = 24  # pixels between the message and the hint under it
+BANNER_DIM_COLOR = (10, 11, 14)
+BANNER_DIM_ALPHA = 170  # how far the frozen scene is faded down behind the message
+
 DEBUG_BACKGROUND_COLOR = (10, 11, 14)  # outside the grid
 DEBUG_FLOOR_COLOR = (198, 202, 210)  # walkable cells — bright so corridors read as paths
 DEBUG_GRID_COLOR = (122, 128, 140)  # cell borders, mid tone to stay visible on floor and walls
@@ -51,6 +59,8 @@ DEBUG_WALL_COLORS = {  # solid cells, keyed by tile id
     3: (92, 66, 22),  # central chamber
 }
 DEBUG_UNKNOWN_COLOR = (220, 60, 60)  # tile id missing from the palette — a bug, not a wall type
+DEBUG_GOAL_COLOR = (54, 226, 96)  # the exit cell — the only green on the map
+DEBUG_GOAL_OUTLINE_COLOR = (12, 40, 24)  # keeps the exit distinct from the cyan rays crossing it
 DEBUG_PLAYER_COLOR = (214, 62, 54)  # the player marker
 DEBUG_HEADING_COLOR = (250, 190, 70)  # the line showing where the player looks
 DEBUG_PLAYER_RADIUS = 0.16  # marker radius, in world units
