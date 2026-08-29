@@ -12,6 +12,7 @@ import pygame
 from src import settings
 
 TEXTURE_SIZE = 64
+MIN_MIP_SIZE = 8  # smallest level in the pyramid, so 64 -> 32 -> 16 -> 8
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 ASSET_SUFFIXES = (".png", ".bmp", ".jpg")
 
@@ -75,6 +76,26 @@ def make_checker(size=TEXTURE_SIZE, base=(176, 138, 70)):
     return texture
 
 
+def _halve(level):
+    """Box-filter a level to half size: each texel is the average of a 2x2 block above it."""
+    wide = level.astype(np.uint16)
+    averaged = wide[0::2, 0::2] + wide[1::2, 0::2] + wide[0::2, 1::2] + wide[1::2, 1::2]
+    return ((averaged + 2) // 4).astype(np.uint8)  # +2 rounds to nearest rather than truncating
+
+
+def build_mipmaps(texture):
+    """Pyramid of pre-filtered copies, level 0 full size and each level half the one above.
+
+    A distant wall squeezes many texels into one pixel, and picking just one of them makes
+    the choice depend on sub-pixel alignment — that is the shimmer. Averaging the texels in
+    advance means the pixel gets all of them however the sample lands.
+    """
+    levels = [texture]
+    while levels[-1].shape[0] > MIN_MIP_SIZE:
+        levels.append(_halve(levels[-1]))
+    return tuple(levels)
+
+
 GENERATORS = {1: make_brick, 2: make_stone, 3: make_checker}
 ASSET_NAMES = {1: "brick", 2: "stone", 3: "checker"}
 
@@ -93,11 +114,12 @@ def _load_asset(name, size):
 
 
 def load_textures(size=TEXTURE_SIZE):
-    """Every wall id mapped to its texture, preferring a file in assets/ over the generator."""
+    """Every wall id mapped to its mip pyramid, preferring a file in assets/ over the generator."""
     textures = {}
     for tile, generator in GENERATORS.items():
         from_disk = _load_asset(ASSET_NAMES[tile], size)
-        textures[tile] = from_disk if from_disk is not None else generator(size, settings.WALL_COLORS[tile])
+        full = from_disk if from_disk is not None else generator(size, settings.WALL_COLORS[tile])
+        textures[tile] = build_mipmaps(full)
     return textures
 
 

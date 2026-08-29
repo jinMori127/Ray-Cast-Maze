@@ -17,6 +17,8 @@ HORIZON = settings.RENDER_HEIGHT // 2
 WALL_SCALE = settings.RENDER_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
 
+use_mipmaps = True  # toggled at runtime so the minification shimmer can be seen both ways
+
 pixels = np.zeros((settings.RENDER_WIDTH, settings.RENDER_HEIGHT, 3), np.uint8)
 _ROW_CENTERS = np.arange(settings.RENDER_HEIGHT, dtype=np.float64) + 0.5
 _FOG_RGB = np.array(settings.FOG_COLOR, np.float64)
@@ -35,6 +37,25 @@ def shade(normal):
 FACE_INTENSITY = tuple(shade(normal) for normal in raycaster.FACE_NORMALS)
 
 
+def toggle_mipmaps():
+    """Flip mip selection; returns the new state so the caller can report it."""
+    global use_mipmaps
+    use_mipmaps = not use_mipmaps
+    return use_mipmaps
+
+
+def mip_level(levels, strip_height):
+    """Pick the level whose texels land about one per screen pixel.
+
+    tex_height / strip_height is texels per pixel — the minification factor — and halving
+    the texture once removes one power of two from it, so its log2 is the level wanted.
+    """
+    if not use_mipmaps:
+        return 0
+    texels_per_pixel = levels[0].shape[1] / strip_height
+    return min(int(math.log2(max(1.0, texels_per_pixel))), len(levels) - 1)
+
+
 def draw_background():
     """Flat ceiling above the horizon, flat floor below it."""
     pixels[:, :HORIZON] = settings.CEILING_COLOR
@@ -45,8 +66,7 @@ def draw_world(hits, textures):
     """Ceiling and floor, then one lit, fogged, textured wall strip per ray hit."""
     draw_background()
     for column, (_, _, perp_dist, tile, facing, u, _, _) in enumerate(hits):
-        texture = textures[tile]
-        tex_width, tex_height = texture.shape[0], texture.shape[1]
+        levels = textures[tile]
 
         # the strip is never clamped: a wall taller than the screen must crop, not squash,
         # or its texels would compress as you walk into it instead of magnifying
@@ -57,6 +77,8 @@ def draw_world(hits, textures):
         if first >= last:
             continue
 
+        texture = levels[mip_level(levels, strip_height)]
+        tex_width, tex_height = texture.shape[0], texture.shape[1]
         texel_column = texture[min(int(u * tex_width), tex_width - 1)]
         rows = (_ROW_CENTERS[first:last] - top) * (tex_height / strip_height)
         texels = texel_column[np.minimum(rows.astype(np.intp), tex_height - 1)]

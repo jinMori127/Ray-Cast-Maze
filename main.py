@@ -48,6 +48,8 @@ class Game:
                     self.running = False
                 elif event.key == pygame.K_TAB:
                     self.debug_view = not self.debug_view
+                elif event.key == pygame.K_l:
+                    renderer.toggle_mipmaps()
                 elif event.key == pygame.K_m:
                     self.minimap_visible = not self.minimap_visible
                 elif event.key == pygame.K_r:
