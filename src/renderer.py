@@ -1,5 +1,7 @@
 """Projection of ray hits into the first-person view — one vertical strip per column."""
 
+import math
+
 import pygame
 
 from src import raycaster, settings
@@ -19,6 +21,19 @@ def shade(color, side):
     return int(red * NS_FACE_SHADE), int(green * NS_FACE_SHADE), int(blue * NS_FACE_SHADE)
 
 
+def fog(color, perp_dist):
+    """Blend a colour toward FOG_COLOR by the exponential factor f = e^(-distance * density)."""
+    visibility = math.exp(-perp_dist * settings.FOG_DENSITY)
+    haze = 1.0 - visibility
+    fog_red, fog_green, fog_blue = settings.FOG_COLOR
+    red, green, blue = color
+    return (
+        int(min(255.0, max(0.0, haze * fog_red + visibility * red))),
+        int(min(255.0, max(0.0, haze * fog_green + visibility * green))),
+        int(min(255.0, max(0.0, haze * fog_blue + visibility * blue))),
+    )
+
+
 def draw_world(surface, hits):
     """Draw ceiling and floor, then one wall strip per ray hit, scaled by 1 / distance."""
     draw_background(surface)
@@ -26,6 +41,7 @@ def draw_world(surface, hits):
         strip_height = min(WALL_SCALE / max(perp_dist, MIN_DISTANCE), settings.SCREEN_HEIGHT)
         top = HORIZON - strip_height / 2
         color = shade(settings.WALL_COLORS.get(tile, settings.WALL_UNKNOWN_COLOR), side)
+        color = fog(color, perp_dist)
         pygame.draw.rect(surface, color, (column, round(top), 1, round(strip_height)))
 
 

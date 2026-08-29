@@ -20,6 +20,7 @@ PLANE_HALF_WIDTH = math.tan(FOV / 2)  # half the projection plane, one unit from
 CEILING_COLOR = (28, 30, 38)
 FLOOR_COLOR = (58, 52, 46)
 FOG_COLOR = CEILING_COLOR
+FOG_DENSITY = 0.20  # tuned so the longest sight line in MAP (13.5 cells) just reaches the fog colour
 
 WALL_COLORS = {  # first-person wall faces, keyed by tile id
     1: (150, 96, 68),  # border brick
