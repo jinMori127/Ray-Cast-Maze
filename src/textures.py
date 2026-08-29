@@ -4,6 +4,7 @@ Arrays are indexed [x, y] to match pygame.surfarray's column-major layout, so a 
 strip is one contiguous slice: texture[column] is every texel down that column.
 """
 
+import math
 import os
 
 import numpy as np
@@ -121,6 +122,29 @@ def load_textures(size=TEXTURE_SIZE):
         full = from_disk if from_disk is not None else generator(size, settings.WALL_COLORS[tile])
         textures[tile] = build_mipmaps(full)
     return textures
+
+
+def sample_nearest(level, u, rows):
+    """Take whichever texel each sample point lands in."""
+    width, height = level.shape[0], level.shape[1]
+    column = level[min(int(u * width), width - 1)]
+    return column[np.minimum(rows.astype(np.intp), height - 1)]
+
+
+def sample_bilinear(level, u, rows):
+    """Blend the four texels around each sample point by the fractional parts."""
+    width, height = level.shape[0], level.shape[1]
+
+    x = u * width - 0.5
+    left_index = math.floor(x)
+    column = level[left_index % width].astype(np.float64)
+    right = level[(left_index + 1) % width].astype(np.float64)
+    column += (right - column) * (x - left_index)
+
+    y = np.clip(rows - 0.5, 0.0, height - 1.0)
+    above = y.astype(np.intp)
+    below = np.minimum(above + 1, height - 1)
+    return column[above] + (column[below] - column[above]) * (y - above)[:, None]
 
 
 def to_surface(texture):

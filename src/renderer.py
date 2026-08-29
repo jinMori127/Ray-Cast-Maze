@@ -10,7 +10,7 @@ import math
 import numpy as np
 import pygame
 
-from src import raycaster, settings
+from src import raycaster, settings, textures
 
 HORIZON = settings.RENDER_HEIGHT // 2
 # distance to the projection plane in rendered pixels, so both axes share one perspective scale
@@ -18,6 +18,7 @@ WALL_SCALE = settings.RENDER_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
 
 use_mipmaps = True  # toggled at runtime so the minification shimmer can be seen both ways
+use_bilinear = False  # nearest by default, keeping the blocky look these textures were drawn for
 
 pixels = np.zeros((settings.RENDER_WIDTH, settings.RENDER_HEIGHT, 3), np.uint8)
 _ROW_CENTERS = np.arange(settings.RENDER_HEIGHT, dtype=np.float64) + 0.5
@@ -44,6 +45,13 @@ def toggle_mipmaps():
     return use_mipmaps
 
 
+def toggle_bilinear():
+    """Flip between nearest and bilinear sampling; returns the new state."""
+    global use_bilinear
+    use_bilinear = not use_bilinear
+    return use_bilinear
+
+
 def mip_level(levels, strip_height):
     """Pick the level whose texels land about one per screen pixel.
 
@@ -62,11 +70,12 @@ def draw_background():
     pixels[:, HORIZON:] = settings.FLOOR_COLOR
 
 
-def draw_world(hits, textures):
+def draw_world(hits, wall_textures):
     """Ceiling and floor, then one lit, fogged, textured wall strip per ray hit."""
     draw_background()
+    sample = textures.sample_bilinear if use_bilinear else textures.sample_nearest
     for column, (_, _, perp_dist, tile, facing, u, _, _) in enumerate(hits):
-        levels = textures[tile]
+        levels = wall_textures[tile]
 
         # the strip is never clamped: a wall taller than the screen must crop, not squash,
         # or its texels would compress as you walk into it instead of magnifying
@@ -78,10 +87,8 @@ def draw_world(hits, textures):
             continue
 
         texture = levels[mip_level(levels, strip_height)]
-        tex_width, tex_height = texture.shape[0], texture.shape[1]
-        texel_column = texture[min(int(u * tex_width), tex_width - 1)]
-        rows = (_ROW_CENTERS[first:last] - top) * (tex_height / strip_height)
-        texels = texel_column[np.minimum(rows.astype(np.intp), tex_height - 1)]
+        rows = (_ROW_CENTERS[first:last] - top) * (texture.shape[1] / strip_height)
+        texels = sample(texture, u, rows)
 
         # one multiply-add lights the texel and blends it toward the fog: both the face
         # intensity and the fog factor are scalars, so the whole strip is done at once
