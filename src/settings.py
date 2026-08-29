@@ -7,6 +7,10 @@ SCREEN_HEIGHT = 600
 FPS = 60
 CAPTION = "Ray-Cast Maze"
 
+RENDER_SCALE = 2  # window pixels per rendered pixel — set to 1 for a native-resolution image
+RENDER_WIDTH = SCREEN_WIDTH // RENDER_SCALE
+RENDER_HEIGHT = SCREEN_HEIGHT // RENDER_SCALE
+
 TILE_SIZE = 64
 
 MOVE_SPEED = 3.0  # world units (cells) per second
@@ -14,7 +18,7 @@ PLAYER_RADIUS = 0.2  # half-width of the box kept clear of walls, in cells
 ROTATION_SPEED = math.radians(150)  # radians per second
 
 FOV = math.radians(60)  # horizontal field of view
-NUM_RAYS = SCREEN_WIDTH  # one ray per screen column
+NUM_RAYS = RENDER_WIDTH  # one ray per rendered column
 PLANE_HALF_WIDTH = math.tan(FOV / 2)  # half the projection plane, one unit from the camera
 
 CEILING_COLOR = (28, 30, 38)

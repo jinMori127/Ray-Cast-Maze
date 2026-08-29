@@ -1,6 +1,6 @@
 import pygame
 
-from src import minimap, raycaster, renderer, settings, world
+from src import minimap, raycaster, renderer, settings, textures, world
 from src.player import Player
 
 
@@ -15,6 +15,7 @@ class Game:
         self.font = pygame.font.SysFont(settings.HUD_FONT_NAME, settings.HUD_FONT_SIZE)
         self.dt = 0.0
         self.running = True
+        self.textures = textures.load_textures()
         self.player = Player(*world.SPAWN, world.SPAWN_ANGLE)
         self.debug_scale = minimap.fit_scale(self.screen)
         self.debug_view = False
@@ -40,7 +41,8 @@ class Game:
         if self.debug_view:
             minimap.draw(self.screen, self.player, self.debug_scale, hits)
         else:
-            renderer.draw_world(self.screen, hits)
+            renderer.draw_world(hits, self.textures)
+            renderer.present(self.screen)
         self.draw_fps()
         pygame.display.flip()
 

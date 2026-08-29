@@ -17,7 +17,7 @@ RAY_OFFSETS = [
 
 
 def cast_ray(px, py, angle):
-    """March a ray to the first wall it meets; returns (distance, tile, side, hit_x, hit_y)."""
+    """March a ray to the first wall; returns (distance, tile, side, u, hit_x, hit_y)."""
     dir_x, dir_y = math.cos(angle), math.sin(angle)
     if abs(dir_x) < EPSILON:
         dir_x = math.copysign(EPSILON, dir_x)
@@ -56,16 +56,28 @@ def cast_ray(px, py, angle):
             break
 
     distance = side_dist_x - delta_x if side == SIDE_EW else side_dist_y - delta_y
-    return distance, tile, side, px + distance * dir_x, py + distance * dir_y
+    hit_x = px + distance * dir_x
+    hit_y = py + distance * dir_y
+
+    # u is the hit's position along the face's tangent, which points -y / +y / +x / -x for
+    # west / east / north / south faces. Negating instead of taking 1 - frac keeps a hit
+    # exactly on a cell corner at u = 0 rather than wrapping it to an out-of-range 1.0.
+    if side == SIDE_EW:
+        along = -hit_y if dir_x > 0 else hit_y
+    else:
+        along = hit_x if dir_y > 0 else -hit_x
+    u = along - math.floor(along)
+
+    return distance, tile, side, u, hit_x, hit_y
 
 
 def cast_all(player):
-    """One ray per column; each hit is (ray_angle, distance, perp_dist, tile, side, hit_x, hit_y)."""
+    """One ray per column; a hit is (ray_angle, distance, perp_dist, tile, side, u, hit_x, hit_y)."""
     px, py, angle = player.x, player.y, player.angle
     hits = []
     for offset in RAY_OFFSETS:
         # offset is the ray's angle off the view axis, so its cosine projects the ray
         # length onto that axis — the depth the perspective divide needs
-        distance, tile, side, hit_x, hit_y = cast_ray(px, py, angle + offset)
-        hits.append((angle + offset, distance, distance * math.cos(offset), tile, side, hit_x, hit_y))
+        distance, tile, side, u, hit_x, hit_y = cast_ray(px, py, angle + offset)
+        hits.append((angle + offset, distance, distance * math.cos(offset), tile, side, u, hit_x, hit_y))
     return hits
