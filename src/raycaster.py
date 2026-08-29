@@ -60,6 +60,12 @@ def cast_ray(px, py, angle):
 
 
 def cast_all(player):
-    """One ray per screen column; each hit is (ray_angle, distance, tile, side, hit_x, hit_y)."""
+    """One ray per column; each hit is (ray_angle, distance, perp_dist, tile, side, hit_x, hit_y)."""
     px, py, angle = player.x, player.y, player.angle
-    return [(angle + offset,) + cast_ray(px, py, angle + offset) for offset in RAY_OFFSETS]
+    hits = []
+    for offset in RAY_OFFSETS:
+        # offset is the ray's angle off the view axis, so its cosine projects the ray
+        # length onto that axis — the depth the perspective divide needs
+        distance, tile, side, hit_x, hit_y = cast_ray(px, py, angle + offset)
+        hits.append((angle + offset, distance, distance * math.cos(offset), tile, side, hit_x, hit_y))
+    return hits

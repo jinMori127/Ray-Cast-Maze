@@ -13,8 +13,8 @@ MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touc
 def draw_world(surface, hits):
     """Draw ceiling and floor, then one wall strip per ray hit, scaled by 1 / distance."""
     draw_background(surface)
-    for column, (_, distance, tile, _, _, _) in enumerate(hits):
-        strip_height = min(WALL_SCALE / max(distance, MIN_DISTANCE), settings.SCREEN_HEIGHT)
+    for column, (_, _, perp_dist, tile, _, _, _) in enumerate(hits):
+        strip_height = min(WALL_SCALE / max(perp_dist, MIN_DISTANCE), settings.SCREEN_HEIGHT)
         top = HORIZON - strip_height / 2
         color = settings.WALL_COLORS.get(tile, settings.WALL_UNKNOWN_COLOR)
         pygame.draw.rect(surface, color, (column, round(top), 1, round(strip_height)))
