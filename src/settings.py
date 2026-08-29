@@ -73,6 +73,8 @@ DEBUG_RAY_STRIDE = 8  # draw every Nth ray only, so single rays stay visible
 
 MINIMAP_SCALE = 8  # pixels per cell in the corner overlay
 MINIMAP_MARGIN = 12  # inset from the screen corner, in pixels
-MINIMAP_ALPHA = 165  # opacity of the whole panel, so the 3D view still reads through it
+MINIMAP_ALPHA = 255  # opaque: with the fov mask on, a see-through panel only ghosts the 3D view into the dark
 MINIMAP_RAY_STRIDE = 20  # far fewer rays than the debug view — the panel is 16x smaller
 MINIMAP_BORDER_COLOR = (150, 156, 168)  # frame that separates the panel from the scene
+MINIMAP_SHADOW_COLOR = (8, 9, 12)  # ground the vision cone does not reach
+MINIMAP_SHADOW_ALPHA = 255  # 255 hides the unseen map outright; lower it to leave a ghost

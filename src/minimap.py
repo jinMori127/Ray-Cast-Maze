@@ -1,15 +1,20 @@
 """Top-down view of the grid — a corner overlay while playing, full screen on TAB."""
 
+import math
+
 import pygame
 
-from src import settings, world
+from src import raycaster, settings, world
+
+CLEAR = (0, 0, 0, 0)  # written into the shadow to punch a hole rather than blend one
 
 _grid_cache = {}  # keyed by scale: the map never changes, so each size is painted once
 _overlay = None
+_shadow = None
 
 
 def draw_overlay(surface, player, hits):
-    """The map, a thinned vision cone and the player, on a translucent corner panel."""
+    """Corner panel showing only the ground the player can currently see, plus the exit."""
     global _overlay
     scale = settings.MINIMAP_SCALE
     grid = _grid(scale)
@@ -19,6 +24,9 @@ def draw_overlay(surface, player, hits):
 
     _overlay.blit(grid, (0, 0))
     _draw_fan(_overlay, player, hits, scale, (0, 0), settings.MINIMAP_RAY_STRIDE)
+    _draw_shadow(_overlay, player, hits, scale, (0, 0))
+    # the exit and the player marker are drawn through the shadow: one is the objective, the
+    # other is where you are, and neither is any use hidden
     _draw_goal(_overlay, scale, (0, 0))
     _draw_player(_overlay, player, hits[len(hits) // 2][1], scale, (0, 0))
 
@@ -95,6 +103,33 @@ def _draw_fan(surface, player, hits, scale, org, stride):
     start = to_screen(player.x, player.y, scale, org)
     for _, _, _, _, _, _, hit_x, hit_y in hits[::stride]:
         pygame.draw.line(surface, settings.DEBUG_FAN_COLOR, start, to_screen(hit_x, hit_y, scale, org))
+
+
+def _draw_shadow(surface, player, hits, scale, org):
+    """Hide every part of the map the vision cone does not reach, wall faces included."""
+    global _shadow
+    if _shadow is None or _shadow.get_size() != surface.get_size():
+        _shadow = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+    _shadow.fill((*settings.MINIMAP_SHADOW_COLOR, settings.MINIMAP_SHADOW_ALPHA))
+
+    # the rays already stop at the first wall, so the fan they trace out is the visible region
+    cone = [to_screen(player.x, player.y, scale, org)]
+    cone.extend(to_screen(hit_x, hit_y, scale, org) for *_, hit_x, hit_y in hits)
+    pygame.draw.polygon(_shadow, CLEAR, cone)
+
+    left, top = org
+    for col, row in {_wall_cell(hit) for hit in hits}:
+        pygame.draw.rect(_shadow, CLEAR, (left + col * scale, top + row * scale, scale, scale))
+
+    surface.blit(_shadow, (0, 0))
+
+
+def _wall_cell(hit):
+    """The cell a ray landed in, taken from the face it struck so a boundary hit never rounds away."""
+    _, _, _, _, facing, _, hit_x, hit_y = hit
+    if facing >> 1 == raycaster.SIDE_EW:
+        return round(hit_x) - (facing == raycaster.FACE_EAST), math.floor(hit_y)
+    return math.floor(hit_x), round(hit_y) - (facing == raycaster.FACE_SOUTH)
 
 
 def _draw_goal(surface, scale, org):
