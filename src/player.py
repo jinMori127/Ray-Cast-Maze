@@ -4,7 +4,7 @@ import math
 
 import pygame
 
-from src import settings
+from src import settings, world
 
 
 class Player:
@@ -43,5 +43,17 @@ class Player:
             move_x /= length
             move_y /= length
 
-        self.x += move_x * settings.MOVE_SPEED * dt
-        self.y += move_y * settings.MOVE_SPEED * dt
+        step = settings.MOVE_SPEED * dt
+        self._walk(move_x * step, move_y * step)
+
+    def _walk(self, move_x, move_y):
+        """Move one axis at a time, so a blocked direction still slides along the wall."""
+        radius = settings.PLAYER_RADIUS
+        if move_x:
+            edge = self.x + move_x + math.copysign(radius, move_x)
+            if not world.is_wall(edge, self.y - radius) and not world.is_wall(edge, self.y + radius):
+                self.x += move_x
+        if move_y:
+            edge = self.y + move_y + math.copysign(radius, move_y)
+            if not world.is_wall(self.x - radius, edge) and not world.is_wall(self.x + radius, edge):
+                self.y += move_y
