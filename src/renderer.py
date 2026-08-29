@@ -16,6 +16,8 @@ HORIZON = settings.RENDER_HEIGHT // 2
 # distance to the projection plane in rendered pixels, so both axes share one perspective scale
 WALL_SCALE = settings.RENDER_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
+CAMERA_HEIGHT = 0.5  # eye sits at mid-wall, which is what puts a wall's base on the horizon line
+FLOOR_SCALE = WALL_SCALE * CAMERA_HEIGHT  # numerator of the row-distance inversion
 
 use_mipmaps = True  # toggled at runtime so the minification shimmer can be seen both ways
 use_bilinear = False  # nearest by default, keeping the blocky look these textures were drawn for
@@ -23,6 +25,7 @@ use_bilinear = False  # nearest by default, keeping the blocky look these textur
 pixels = np.zeros((settings.RENDER_WIDTH, settings.RENDER_HEIGHT, 3), np.uint8)
 _ROW_CENTERS = np.arange(settings.RENDER_HEIGHT, dtype=np.float64) + 0.5
 _FOG_RGB = np.array(settings.FOG_COLOR, np.float64)
+_COLUMN_T = 2.0 * (np.arange(settings.RENDER_WIDTH) + 0.5) / settings.RENDER_WIDTH - 1.0
 _upscale_source = None  # built on first present, once a display mode exists
 
 
@@ -64,15 +67,31 @@ def mip_level(levels, strip_height):
     return min(int(math.log2(max(1.0, texels_per_pixel))), len(levels) - 1)
 
 
-def draw_background():
-    """Flat ceiling above the horizon, flat floor below it."""
+def draw_ceiling():
+    """Flat colour above the horizon."""
     pixels[:, :HORIZON] = settings.CEILING_COLOR
-    pixels[:, HORIZON:] = settings.FLOOR_COLOR
 
 
-def draw_world(hits, wall_textures):
-    """Ceiling and floor, then one lit, fogged, textured wall strip per ray hit."""
-    draw_background()
+def draw_floor(player, floor_texture):
+    """Invert the projection row by row and sample the world line each row looks along."""
+    dir_x, dir_y = player.direction
+    plane_x = -dir_y * settings.PLANE_HALF_WIDTH
+    plane_y = dir_x * settings.PLANE_HALF_WIDTH
+    size = floor_texture.shape[0]
+
+    for row in range(HORIZON, settings.RENDER_HEIGHT):
+        distance = FLOOR_SCALE / (row + 0.5 - HORIZON)
+        world_x = player.x + distance * (dir_x + _COLUMN_T * plane_x)
+        world_y = player.y + distance * (dir_y + _COLUMN_T * plane_y)
+        tex_x = np.floor(world_x * size).astype(np.intp) % size
+        tex_y = np.floor(world_y * size).astype(np.intp) % size
+        pixels[:, row] = floor_texture[tex_x, tex_y]
+
+
+def draw_world(player, hits, wall_textures, floor_texture):
+    """Ceiling, cast floor, then one lit, fogged, textured wall strip per ray hit."""
+    draw_ceiling()
+    draw_floor(player, floor_texture)
     sample = textures.sample_bilinear if use_bilinear else textures.sample_nearest
     for column, (_, _, perp_dist, tile, facing, u, _, _) in enumerate(hits):
         levels = wall_textures[tile]

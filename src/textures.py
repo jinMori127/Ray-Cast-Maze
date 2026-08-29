@@ -21,6 +21,7 @@ BRICK_COURSES = 8  # brick rows down the texture
 BRICK_PER_COURSE = 4
 STONE_BLOCKS = 2  # ashlar blocks are far larger than bricks, so the two never look alike
 CHECKER_CELLS = 8
+FLOOR_TILES = 4  # flagstones across the floor texture
 JOINT_THICKNESS = 2  # mortar / joint width in texels
 
 
@@ -97,6 +98,22 @@ def build_mipmaps(texture):
     return tuple(levels)
 
 
+def make_floor(size=TEXTURE_SIZE, base=(98, 88, 78)):
+    """Square flagstones in a regular grid, each with its own tone."""
+    texture = np.empty((size, size, 3), np.uint8)
+    tile = size // FLOOR_TILES
+    joint = _scale(base, 0.55)
+    for y in range(size):
+        for x in range(size):
+            if x % tile < JOINT_THICKNESS or y % tile < JOINT_THICKNESS:
+                texture[x, y] = joint
+                continue
+            tone = 0.88 + 0.24 * _hash01(x // tile, y // tile)
+            grain = 0.96 + 0.08 * _hash01(x, y)
+            texture[x, y] = _scale(base, tone * grain)
+    return texture
+
+
 GENERATORS = {1: make_brick, 2: make_stone, 3: make_checker}
 ASSET_NAMES = {1: "brick", 2: "stone", 3: "checker"}
 
@@ -122,6 +139,12 @@ def load_textures(size=TEXTURE_SIZE):
         full = from_disk if from_disk is not None else generator(size, settings.WALL_COLORS[tile])
         textures[tile] = build_mipmaps(full)
     return textures
+
+
+def load_floor(size=TEXTURE_SIZE):
+    """The floor texture, preferring assets/floor.* over the generator."""
+    from_disk = _load_asset("floor", size)
+    return from_disk if from_disk is not None else make_floor(size, settings.FLOOR_TEXTURE_BASE)
 
 
 def sample_nearest(level, u, rows):

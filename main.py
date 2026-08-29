@@ -20,6 +20,7 @@ class Game:
         self.dt = 0.0
         self.running = True
         self.textures = textures.load_textures()
+        self.floor_texture = textures.load_floor()
         self.debug_view = False
         self.minimap_visible = True
         self.mouse_dx = 0
@@ -75,7 +76,7 @@ class Game:
         if self.debug_view:
             minimap.draw_debug(self.screen, self.player, hits)
         else:
-            renderer.draw_world(hits, self.textures)
+            renderer.draw_world(self.player, hits, self.textures, self.floor_texture)
             renderer.present(self.screen)
             if self.minimap_visible:
                 minimap.draw_overlay(self.screen, self.player, hits)
