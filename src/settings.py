@@ -15,7 +15,8 @@ TILE_SIZE = 64
 
 MOVE_SPEED = 3.0  # world units (cells) per second
 PLAYER_RADIUS = 0.2  # half-width of the box kept clear of walls, in cells
-ROTATION_SPEED = math.radians(150)  # radians per second
+ROTATION_SPEED = math.radians(150)  # radians per second, for the arrow keys
+MOUSE_SENSITIVITY = math.radians(0.15)  # radians turned per pixel of horizontal mouse motion
 
 FOV = math.radians(60)  # horizontal field of view
 NUM_RAYS = RENDER_WIDTH  # one ray per rendered column

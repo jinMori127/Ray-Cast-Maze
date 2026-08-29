@@ -22,13 +22,27 @@ class Game:
         self.textures = textures.load_textures()
         self.debug_view = False
         self.minimap_visible = True
+        self.mouse_dx = 0
+        self.grab_mouse()
         self.restart()
 
+    def grab_mouse(self):
+        """Hide and confine the pointer so it reports unbounded turning motion."""
+        pygame.mouse.set_visible(False)
+        pygame.event.set_grab(True)
+        try:
+            pygame.mouse.set_relative_mode(True)
+        except pygame.error:
+            pass  # driver without relative mode — the grab alone still delivers motion
+
     def handle_events(self):
-        """Drain the event queue and set the quit flag."""
+        """Drain the event queue, collecting this frame's mouse turn and setting the quit flag."""
+        self.mouse_dx = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif event.type == pygame.MOUSEMOTION:
+                self.mouse_dx += event.rel[0]
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
@@ -48,7 +62,7 @@ class Game:
         """Advance the world by self.dt seconds; an escaped player is frozen where they stand."""
         if self.won:
             return
-        self.player.update(pygame.key.get_pressed(), self.dt)
+        self.player.update(pygame.key.get_pressed(), self.mouse_dx, self.dt)
         self.won = world.at_goal(self.player.x, self.player.y)
 
     def draw(self):

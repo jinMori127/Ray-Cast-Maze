@@ -24,14 +24,18 @@ class Player:
         """Rotate the view by delta radians, kept wrapped into [0, 2*pi)."""
         self.angle = (self.angle + delta) % math.tau
 
-    def update(self, keys, dt):
-        """Turn and walk for one frame of dt seconds, driven by the current key state."""
-        turn = (keys[pygame.K_d] or keys[pygame.K_RIGHT]) - (keys[pygame.K_a] or keys[pygame.K_LEFT])
+    def update(self, keys, mouse_dx, dt):
+        """Turn and walk for one frame of dt seconds, driven by the mouse and the held keys."""
+        if mouse_dx:
+            # a mouse delta is already a displacement, not a rate, so dt must not scale it
+            self.turn(mouse_dx * settings.MOUSE_SENSITIVITY)
+
+        turn = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
         if turn:
             self.turn(turn * settings.ROTATION_SPEED * dt)
 
         forward = keys[pygame.K_w] - keys[pygame.K_s]
-        strafe = keys[pygame.K_e] - keys[pygame.K_q]
+        strafe = keys[pygame.K_d] - keys[pygame.K_a]
         if not (forward or strafe):
             return
 
