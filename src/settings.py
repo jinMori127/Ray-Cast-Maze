@@ -39,6 +39,11 @@ LIGHT_DIRECTION = (-0.6, -0.8)  # unit vector pointing toward the light, in worl
 AMBIENT_LIGHT = 0.40  # base level every face receives, however it is turned
 DIFFUSE_LIGHT = 0.75  # weight on the Lambert term; ambient + diffuse * 0.8 reaches exactly 1.0
 
+GOAL_LIGHT_COLOR = (68, 240, 124)  # added at full strength on the exit itself; the minimap green
+GOAL_LIGHT_RANGE = 2.0  # cells of floor the exit lights before its falloff reaches zero
+GOAL_LIGHT_WALL_RANGE = 1.45  # tuned so the light reaches the faces bounding the exit cell and no others
+GOAL_LIGHT_FOG_RESISTANCE = 0.5  # below 1 the beacon outlives the fog, staying readable down a corridor
+
 HUD_COLOR = (226, 232, 240)  # near-white, readable over the fogged scene and the debug backdrop
 HUD_FONT_NAME = "consolas,dejavusansmono,couriernew,monospace"  # first one installed wins
 HUD_FONT_SIZE = 18
