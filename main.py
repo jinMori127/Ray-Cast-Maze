@@ -139,11 +139,11 @@ class Game:
 
     def draw_run(self):
         """The first-person view or the debug map, plus the overlays over it."""
-        hits = raycaster.cast_all(self.player)
+        hits, obstacles = raycaster.cast_all(self.player)
         if self.debug_view:
             minimap.draw_debug(self.screen, self.player, hits)
         else:
-            renderer.draw_world(self.player, hits, self.textures, self.floor_texture)
+            renderer.draw_world(self.player, hits, obstacles, self.textures, self.floor_texture)
             renderer.present(self.screen)
             if self.minimap_visible:
                 minimap.draw_overlay(self.screen, self.player, hits)

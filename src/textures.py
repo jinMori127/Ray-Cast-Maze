@@ -20,6 +20,8 @@ ASSET_SUFFIXES = (".png", ".bmp", ".jpg")
 BRICK_COURSES = 8  # brick rows down the texture
 BRICK_PER_COURSE = 4
 STONE_BLOCKS = 2  # ashlar blocks are far larger than bricks, so the two never look alike
+RUBBLE_COURSES = 3  # only the bottom third of a step's texture shows on its face
+RUBBLE_PER_COURSE = 3
 CHECKER_CELLS = 8
 FLOOR_TILES = 4  # flagstones across the floor texture
 JOINT_THICKNESS = 2  # mortar / joint width in texels
@@ -114,8 +116,13 @@ def make_floor(size=TEXTURE_SIZE, base=(98, 88, 78)):
     return texture
 
 
-GENERATORS = {1: make_brick, 2: make_stone, 3: make_checker}
-ASSET_NAMES = {1: "brick", 2: "stone", 3: "checker"}
+def make_rubble(size=TEXTURE_SIZE, base=(128, 132, 104)):
+    """Coarse blockwork for the steps — chunkier courses than any wall you cannot climb."""
+    return _masonry(size, base, (RUBBLE_COURSES, RUBBLE_PER_COURSE), 0.50, 0.16, 0.06)
+
+
+GENERATORS = {1: make_brick, 2: make_stone, 3: make_checker, 4: make_rubble}
+ASSET_NAMES = {1: "brick", 2: "stone", 3: "checker", 4: "rubble"}
 
 
 def _load_asset(name, size):

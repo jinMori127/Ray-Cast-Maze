@@ -16,8 +16,9 @@ TILE_SIZE = 64
 MOVE_SPEED = 3.0  # world units (cells) per second
 PLAYER_RADIUS = 0.2  # half-width of the box kept clear of walls, in cells
 EYE_HEIGHT = 0.5  # standing eye height: mid-wall, so wall strips straddle the horizon evenly
-JUMP_SPEED = 2.6  # upward launch, in cells per second
-GRAVITY = 9.0  # downward acceleration; with JUMP_SPEED it peaks at 0.375 cells, short of the 1.0 ceiling
+MAX_EYE_HEIGHT = 0.95  # the eye bumps the ceiling here; above 1.0 it would see over walls the rays still stop at
+JUMP_SPEED = 2.81  # upward launch, in cells per second
+GRAVITY = 9.0  # peaks the feet at 0.439 cells: over a step, but only for the 0.84 cells it is wide
 ROTATION_SPEED = math.radians(150)  # radians per second, for the arrow keys
 MOUSE_SENSITIVITY = math.radians(0.15)  # radians turned per pixel of horizontal mouse motion
 
@@ -35,6 +36,7 @@ WALL_COLORS = {  # first-person wall faces, keyed by tile id
     1: (150, 96, 68),  # border brick
     2: (104, 116, 138),  # inner stone
     3: (176, 138, 70),  # central chamber
+    4: (128, 132, 104),  # step — mossy, so a block you can climb never reads as a wall
 }
 WALL_UNKNOWN_COLOR = (220, 60, 60)  # tile id missing from the palette — a bug, not a wall type
 
@@ -98,6 +100,7 @@ DEBUG_WALL_COLORS = {  # solid cells, keyed by tile id
     1: (70, 44, 32),  # border brick
     2: (44, 50, 62),  # inner stone
     3: (92, 66, 22),  # central chamber
+    4: (108, 122, 84),  # step — light, since it is something to climb on the path, not a barrier
 }
 DEBUG_UNKNOWN_COLOR = (220, 60, 60)  # tile id missing from the palette — a bug, not a wall type
 DEBUG_GOAL_COLOR = (54, 226, 96)  # the exit cell — the only green on the map

@@ -30,17 +30,25 @@ class Player:
             self.grounded = False
 
     def _apply_gravity(self, dt):
-        """Integrate the jump arc, landing back exactly on standing height.
+        """Integrate the jump arc and settle onto whatever surface is underfoot.
 
         Gravity is constant, so the half-a-t-squared term makes this exact rather than
         approximate: the arc peaks at the same height whatever the frame rate.
         """
+        surface = settings.EYE_HEIGHT + world.stand_height(self.x, self.y)
         if self.grounded:
-            return
+            if self.z <= surface:
+                self.z = surface
+                return
+            self.grounded = False  # walked off the top of a step, so start falling
+
         self.z += self.velocity_z * dt - 0.5 * settings.GRAVITY * dt * dt
         self.velocity_z -= settings.GRAVITY * dt
-        if self.z <= settings.EYE_HEIGHT:
-            self.z = settings.EYE_HEIGHT
+        if self.z >= settings.MAX_EYE_HEIGHT:  # a jump from atop a step bumps the ceiling
+            self.z = settings.MAX_EYE_HEIGHT
+            self.velocity_z = min(self.velocity_z, 0.0)
+        if self.z <= surface:
+            self.z = surface
             self.velocity_z = 0.0
             self.grounded = True
 
@@ -81,11 +89,12 @@ class Player:
     def _walk(self, move_x, move_y):
         """Move one axis at a time, so a blocked direction still slides along the wall."""
         radius = settings.PLAYER_RADIUS
+        feet = self.z - settings.EYE_HEIGHT  # a step only stops feet carried below its top
         if move_x:
             edge = self.x + move_x + math.copysign(radius, move_x)
-            if not world.is_wall(edge, self.y - radius) and not world.is_wall(edge, self.y + radius):
+            if not world.blocks(edge, self.y - radius, feet) and not world.blocks(edge, self.y + radius, feet):
                 self.x += move_x
         if move_y:
             edge = self.y + move_y + math.copysign(radius, move_y)
-            if not world.is_wall(self.x - radius, edge) and not world.is_wall(self.x + radius, edge):
+            if not world.blocks(self.x - radius, edge, feet) and not world.blocks(self.x + radius, edge, feet):
                 self.y += move_y

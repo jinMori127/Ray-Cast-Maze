@@ -25,7 +25,12 @@ RAY_OFFSETS = [
 
 
 def cast_ray(px, py, angle):
-    """March a ray to the first wall; returns (distance, tile, facing, u, hit_x, hit_y)."""
+    """March a ray to the first wall tall enough to block the view.
+
+    Returns (blocking_hit, low_hits): a step is short enough to see over, so the ray records
+    it and keeps going instead of stopping. Each hit is
+    (distance, tile, facing, u, hit_x, hit_y), and low_hits runs near to far.
+    """
     dir_x, dir_y = math.cos(angle), math.sin(angle)
     if abs(dir_x) < EPSILON:
         dir_x = math.copysign(EPSILON, dir_x)
@@ -50,6 +55,7 @@ def cast_ray(px, py, angle):
         step_y = 1
         side_dist_y = (map_y + 1 - py) * delta_y
 
+    low_hits = []
     while True:
         if side_dist_x < side_dist_y:
             side_dist_x += delta_x
@@ -60,32 +66,41 @@ def cast_ray(px, py, angle):
             map_y += step_y
             side = SIDE_NS
         tile = world.tile_at(map_x, map_y)
-        if tile != world.EMPTY:
-            break
+        if tile == world.EMPTY:
+            continue
 
-    distance = side_dist_x - delta_x if side == SIDE_EW else side_dist_y - delta_y
-    hit_x = px + distance * dir_x
-    hit_y = py + distance * dir_y
+        distance = side_dist_x - delta_x if side == SIDE_EW else side_dist_y - delta_y
+        hit_x = px + distance * dir_x
+        hit_y = py + distance * dir_y
 
-    # u is the hit's position along the face's tangent, which points -y / +y / +x / -x for
-    # west / east / north / south faces. Negating instead of taking 1 - frac keeps a hit
-    # exactly on a cell corner at u = 0 rather than wrapping it to an out-of-range 1.0.
-    if side == SIDE_EW:
-        facing, along = (FACE_WEST, -hit_y) if dir_x > 0 else (FACE_EAST, hit_y)
-    else:
-        facing, along = (FACE_NORTH, hit_x) if dir_y > 0 else (FACE_SOUTH, -hit_x)
-    u = along - math.floor(along)
+        # u is the hit's position along the face's tangent, which points -y / +y / +x / -x for
+        # west / east / north / south faces. Negating instead of taking 1 - frac keeps a hit
+        # exactly on a cell corner at u = 0 rather than wrapping it to an out-of-range 1.0.
+        if side == SIDE_EW:
+            facing, along = (FACE_WEST, -hit_y) if dir_x > 0 else (FACE_EAST, hit_y)
+        else:
+            facing, along = (FACE_NORTH, hit_x) if dir_y > 0 else (FACE_SOUTH, -hit_x)
 
-    return distance, tile, facing, u, hit_x, hit_y
+        hit = (distance, tile, facing, along - math.floor(along), hit_x, hit_y)
+        if tile != world.STEP:
+            return hit, low_hits
+        low_hits.append(hit)
 
 
 def cast_all(player):
-    """One ray per column; a hit is (ray_angle, distance, perp_dist, tile, facing, u, hit_x, hit_y)."""
+    """One ray per column: the wall that blocks it, and the steps standing in front of it.
+
+    A blocking hit is (ray_angle, distance, perp_dist, tile, facing, u, hit_x, hit_y); a mini
+    wall drops the two the minimap never asks for, leaving (perp_dist, tile, facing, u, x, y).
+    """
     px, py, angle = player.x, player.y, player.angle
     hits = []
+    obstacles = []
     for offset in RAY_OFFSETS:
         # offset is the ray's angle off the view axis, so its cosine projects the ray
         # length onto that axis — the depth the perspective divide needs
-        distance, tile, facing, u, hit_x, hit_y = cast_ray(px, py, angle + offset)
-        hits.append((angle + offset, distance, distance * math.cos(offset), tile, facing, u, hit_x, hit_y))
-    return hits
+        (distance, tile, facing, u, hit_x, hit_y), low = cast_ray(px, py, angle + offset)
+        cosine = math.cos(offset)
+        hits.append((angle + offset, distance, distance * cosine, tile, facing, u, hit_x, hit_y))
+        obstacles.append([(d * cosine, t, f, v, x, y) for d, t, f, v, x, y in low])
+    return hits, obstacles

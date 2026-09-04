@@ -16,6 +16,7 @@ HORIZON = settings.RENDER_HEIGHT // 2
 # distance to the projection plane in rendered pixels, so both axes share one perspective scale
 WALL_SCALE = settings.RENDER_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
+CELL_HALF_DIAGONAL = math.sqrt(0.5)  # centre of a cell to its farthest corner
 # Eye height is player.z, so both projections below take it per frame rather than as a constant:
 # the horizon never moves with height, only the rate at which the floor and wall tops climb to it.
 
@@ -27,6 +28,7 @@ _ROW_CENTERS = np.arange(settings.RENDER_HEIGHT, dtype=np.float64) + 0.5
 _FOG_RGB = np.array(settings.FOG_COLOR, np.float64)
 _GOAL_LIGHT_RGB = np.array(settings.GOAL_LIGHT_COLOR, np.float64)
 _COLUMN_T = 2.0 * (np.arange(settings.RENDER_WIDTH) + 0.5) / settings.RENDER_WIDTH - 1.0
+_depths = np.zeros(settings.RENDER_WIDTH, np.float64)  # per-column wall depth: the z-buffer
 _upscale_source = None  # built on first present, once a display mode exists
 
 
@@ -100,14 +102,74 @@ def draw_ceiling():
     pixels[:, :HORIZON] = settings.CEILING_COLOR
 
 
+def _sample_plane(texture, world_x, world_y, size):
+    """Texel under each world point, the texture tiling once per cell."""
+    tex_x = np.floor(world_x * size).astype(np.intp) % size
+    tex_y = np.floor(world_y * size).astype(np.intp) % size
+    return texture[tex_x, tex_y]
+
+
+def _step_reach(player):
+    """Range of plane distances that could land on a step, so most rows skip the pass."""
+    spread = [math.hypot(cx - player.x, cy - player.y) for cx, cy in world.STEP_CENTRES]
+    if not spread:
+        return 0.0, -1.0
+    return min(spread) - CELL_HALF_DIAGONAL, max(spread) + CELL_HALF_DIAGONAL
+
+
+def draw_step_tops(player, step_texture, depths):
+    """Paint the tops of the steps: a second ground plane, cast the way the floor is.
+
+    This runs after the walls because a step standing in front of one projects into the same
+    rows that wall covers, and the nearer surface has to win. `depths` holds each column's
+    wall distance from the ray pass — a one-dimensional z-buffer — so a step hidden behind a
+    wall stays hidden while one in front of it paints over.
+    """
+    dir_x, dir_y = player.direction
+    plane_x = -dir_y * settings.PLANE_HALF_WIDTH
+    plane_y = dir_x * settings.PLANE_HALF_WIDTH
+    size = step_texture.shape[0]
+    ray_x = dir_x + _COLUMN_T * plane_x
+    ray_y = dir_y + _COLUMN_T * plane_y
+
+    nearest, farthest = _step_reach(player)
+    goal_x, goal_y = world.GOAL
+    goal_distance = math.hypot(goal_x - player.x, goal_y - player.y)
+    step_scale = WALL_SCALE * (player.z - world.STEP_HEIGHT)
+
+    for row in range(HORIZON, settings.RENDER_HEIGHT):
+        distance = step_scale / (row + 0.5 - HORIZON)
+        if not nearest <= distance <= farthest:
+            continue
+        step_x = player.x + distance * ray_x
+        step_y = player.y + distance * ray_y
+        col = np.floor(step_x).astype(np.intp)
+        cell_row = np.floor(step_y).astype(np.intp)
+        inside = (col >= 0) & (col < world.MAP_WIDTH) & (cell_row >= 0) & (cell_row < world.MAP_HEIGHT)
+        np.clip(col, 0, world.MAP_WIDTH - 1, out=col)
+        np.clip(cell_row, 0, world.MAP_HEIGHT - 1, out=cell_row)
+        lit_columns = np.flatnonzero(inside & (distance < depths)
+                                     & (world.GRID[cell_row, col] == world.STEP))
+        if not len(lit_columns):
+            continue
+
+        texels = _sample_plane(step_texture, step_x[lit_columns], step_y[lit_columns], size)
+        if abs(distance - goal_distance) <= settings.GOAL_LIGHT_RANGE:
+            glow = goal_light_on_floor(step_x[lit_columns], step_y[lit_columns], goal_x, goal_y)
+            texels = np.clip(texels + _GOAL_LIGHT_RGB * glow[:, None], 0.0, 255.0).astype(np.uint8)
+        pixels[lit_columns, row] = texels
+
+
 def draw_floor(player, floor_texture):
     """Invert the projection row by row and sample the world line each row looks along."""
     dir_x, dir_y = player.direction
     plane_x = -dir_y * settings.PLANE_HALF_WIDTH
     plane_y = dir_x * settings.PLANE_HALF_WIDTH
     size = floor_texture.shape[0]
+    ray_x = dir_x + _COLUMN_T * plane_x  # constant all frame, so it lifts out of the row loop
+    ray_y = dir_y + _COLUMN_T * plane_y
 
-    # a row can only hold lit floor when its own distance is within the light's reach of the
+    # a row can only hold lit ground when its own distance is within the light's reach of the
     # goal's, by the triangle inequality — so most rows skip the pool with one scalar test
     goal_x, goal_y = world.GOAL
     goal_distance = math.hypot(goal_x - player.x, goal_y - player.y)
@@ -117,54 +179,74 @@ def draw_floor(player, floor_texture):
     floor_scale = WALL_SCALE * player.z  # a jump raises the eye, so each row sees further out
     for row in range(HORIZON, settings.RENDER_HEIGHT):
         distance = floor_scale / (row + 0.5 - HORIZON)
-        world_x = player.x + distance * (dir_x + _COLUMN_T * plane_x)
-        world_y = player.y + distance * (dir_y + _COLUMN_T * plane_y)
-        tex_x = np.floor(world_x * size).astype(np.intp) % size
-        tex_y = np.floor(world_y * size).astype(np.intp) % size
+        world_x = player.x + distance * ray_x
+        world_y = player.y + distance * ray_y
+        surface = _sample_plane(floor_texture, world_x, world_y, size)
         if not nearest_lit <= distance <= farthest_lit:
-            pixels[:, row] = floor_texture[tex_x, tex_y]
+            pixels[:, row] = surface
             continue
         glow = goal_light_on_floor(world_x, world_y, goal_x, goal_y)
-        lit = floor_texture[tex_x, tex_y] + _GOAL_LIGHT_RGB * glow[:, None]
+        lit = surface + _GOAL_LIGHT_RGB * glow[:, None]
         pixels[:, row] = np.clip(lit, 0.0, 255.0).astype(np.uint8)
 
 
-def draw_world(player, hits, wall_textures, floor_texture):
-    """Ceiling, cast floor, then one lit, fogged, textured wall strip per ray hit."""
+def draw_strip(column, hit, height, camera_z, wall_textures, sample, goal):
+    """One lit, fogged, textured wall slice, cut to the screen rows its height covers."""
+    perp_dist, tile, facing, u, hit_x, hit_y = hit
+    levels = wall_textures[tile]
+
+    # pixels per world unit at this depth; the strip is never clamped, because a wall taller
+    # than the screen must crop rather than squash, or its texels would compress as you approach
+    column_scale = WALL_SCALE / max(perp_dist, MIN_DISTANCE)
+    strip_height = column_scale * height
+    # the wall's top projects to HORIZON + WALL_SCALE * (z - height) / d, so a shorter wall
+    # starts further down the screen and raising the eye slides the whole strip down with it
+    top = HORIZON + column_scale * (camera_z - height)
+    first = max(0, math.ceil(top))
+    last = min(settings.RENDER_HEIGHT, math.ceil(top + strip_height))
+    if first >= last:
+        return
+
+    # minification depends on depth alone, not on how tall the wall is, so a step picks
+    # the same mip level as the full wall beside it
+    texture = levels[mip_level(levels, column_scale)]
+    texel_rows = texture.shape[1]
+    # a short wall takes the bottom of the texture rather than squeezing all of it into fewer
+    # pixels, which keeps its courses the same physical size as the tall walls around it
+    rows = (1.0 - height) * texel_rows + (_ROW_CENTERS[first:last] - top) * (texel_rows / column_scale)
+    texels = sample(texture, u, rows)
+
+    # one multiply-add lights the texel and blends it toward the fog: both the face
+    # intensity and the fog factor are scalars, so the whole strip is done at once
+    visibility = math.exp(-perp_dist * settings.FOG_DENSITY)
+    lit = texels * (FACE_INTENSITY[facing] * visibility) + _FOG_RGB * (1.0 - visibility)
+
+    # the beacon is added after the fog blend and fogged at its own gentler rate, so it
+    # still reads from the far end of a corridor the walls have already faded out of
+    glow = goal_light_on_face(hit_x, hit_y, facing, goal[0], goal[1])
+    if glow:
+        lit = lit + _GOAL_LIGHT_RGB * (glow * visibility ** settings.GOAL_LIGHT_FOG_RESISTANCE)
+        np.clip(lit, 0.0, 255.0, out=lit)
+    pixels[column, first:last] = lit.astype(np.uint8)
+
+
+def draw_world(player, hits, obstacles, wall_textures, floor_texture):
+    """Ceiling, the two ground planes, the wall closing each column, then the steps before it."""
     draw_ceiling()
     draw_floor(player, floor_texture)
-    goal_x, goal_y = world.GOAL
+    goal = world.GOAL
+    camera_z = player.z
     sample = textures.sample_bilinear if use_bilinear else textures.sample_nearest
     for column, (_, _, perp_dist, tile, facing, u, hit_x, hit_y) in enumerate(hits):
-        levels = wall_textures[tile]
-
-        # the strip is never clamped: a wall taller than the screen must crop, not squash,
-        # or its texels would compress as you walk into it instead of magnifying
-        strip_height = WALL_SCALE / max(perp_dist, MIN_DISTANCE)
-        # the wall's top (world height 1) projects to HORIZON + WALL_SCALE * (z - 1) / d, so
-        # raising the eye slides the whole strip down the screen without resizing it
-        top = HORIZON + strip_height * (player.z - 1.0)
-        first = max(0, math.ceil(top))
-        last = min(settings.RENDER_HEIGHT, math.ceil(top + strip_height))
-        if first >= last:
-            continue
-
-        texture = levels[mip_level(levels, strip_height)]
-        rows = (_ROW_CENTERS[first:last] - top) * (texture.shape[1] / strip_height)
-        texels = sample(texture, u, rows)
-
-        # one multiply-add lights the texel and blends it toward the fog: both the face
-        # intensity and the fog factor are scalars, so the whole strip is done at once
-        visibility = math.exp(-perp_dist * settings.FOG_DENSITY)
-        lit = texels * (FACE_INTENSITY[facing] * visibility) + _FOG_RGB * (1.0 - visibility)
-
-        # the beacon is added after the fog blend and fogged at its own gentler rate, so it
-        # still reads from the far end of a corridor the walls have already faded out of
-        glow = goal_light_on_face(hit_x, hit_y, facing, goal_x, goal_y)
-        if glow:
-            lit = lit + _GOAL_LIGHT_RGB * (glow * visibility ** settings.GOAL_LIGHT_FOG_RESISTANCE)
-            np.clip(lit, 0.0, 255.0, out=lit)
-        pixels[column, first:last] = lit.astype(np.uint8)
+        _depths[column] = perp_dist
+        draw_strip(column, (perp_dist, tile, facing, u, hit_x, hit_y), world.FULL_HEIGHT,
+                   camera_z, wall_textures, sample, goal)
+        # every step stands nearer than the wall that stopped the ray, so painting them
+        # afterwards, farthest first, resolves each overlap without a depth test
+        for obstacle in reversed(obstacles[column]):
+            draw_strip(column, obstacle, world.STEP_HEIGHT, camera_z, wall_textures, sample, goal)
+    if world.HAS_STEPS:
+        draw_step_tops(player, wall_textures[world.STEP][0], _depths)
 
 
 def present(screen):
