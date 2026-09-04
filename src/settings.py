@@ -45,12 +45,43 @@ HUD_FONT_SIZE = 18
 HUD_MARGIN = 8  # inset from the screen corner, in pixels
 
 WIN_TEXT = "ESCAPED"
-WIN_HINT = "R to restart - Esc to quit"
+WIN_HINT = "Enter for the next level - R to retry - Esc for level select"
+WIN_LAST_HINT = "Every level cleared - R to retry - Esc for level select"
 BANNER_FONT_SIZE = 72
 BANNER_COLOR = (250, 226, 140)  # warm gold, nothing else in the palette is close to it
 BANNER_GAP = 24  # pixels between the message and the hint under it
 BANNER_DIM_COLOR = (10, 11, 14)
 BANNER_DIM_ALPHA = 170  # how far the frozen scene is faded down behind the message
+
+MENU_BACKGROUND_COLOR = (14, 15, 20)
+MENU_TITLE_COLOR = (250, 226, 140)  # the banner gold, so the title and a win read as one theme
+MENU_TEXT_COLOR = (226, 232, 240)
+MENU_MUTED_COLOR = (124, 130, 144)  # locked labels and the hint line
+MENU_CARD_OPEN_COLOR = (38, 42, 54)
+MENU_CARD_CLEARED_COLOR = (28, 50, 40)
+MENU_CARD_LOCKED_COLOR = (21, 23, 29)
+MENU_CARD_HOVER_COLOR = (78, 88, 110)  # well clear of the open-card fill, so hover is unmistakable
+MENU_CARD_EDGE_COLOR = (96, 104, 122)
+MENU_CARD_CLEARED_EDGE_COLOR = (54, 226, 96)  # the goal green — a cleared level reads at a glance
+MENU_CARD_LOCKED_EDGE_COLOR = (42, 46, 56)
+
+MENU_TITLE_SIZE = 52
+MENU_NUMBER_SIZE = 54
+MENU_NAME_SIZE = 16
+MENU_STATUS_SIZE = 15
+MENU_LOCK_SIZE = 38  # height of the padlock drawn where a locked card would show its number
+MENU_TITLE_Y = 74  # midtop of the title, in pixels
+MENU_CARD_SIZE = (150, 172)
+MENU_CARD_GAP = 22
+MENU_CARD_TOP = 196
+MENU_CARD_RADIUS = 10  # corner rounding on cards and buttons
+MENU_BUTTON_SIZE = (170, 46)
+MENU_BUTTON_TOP = 432
+MENU_HINT_Y = 526
+MENU_HINT = "Click a level to play - Esc leaves a run"
+MENU_CLEARED_TEXT = "CLEARED"
+MENU_OPEN_TEXT = "PLAY"
+MENU_QUIT_TEXT = "QUIT"
 
 DEBUG_BACKGROUND_COLOR = (10, 11, 14)  # outside the grid
 DEBUG_FLOOR_COLOR = (198, 202, 210)  # walkable cells — bright so corridors read as paths

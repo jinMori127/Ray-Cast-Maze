@@ -8,7 +8,7 @@ from src import raycaster, settings, world
 
 CLEAR = (0, 0, 0, 0)  # written into the shadow to punch a hole rather than blend one
 
-_grid_cache = {}  # keyed by scale: the map never changes, so each size is painted once
+_grid_cache = {}  # keyed by (level, scale): a level's grid never changes, so each size is painted once
 _overlay = None
 _shadow = None
 
@@ -18,7 +18,7 @@ def draw_overlay(surface, player, hits):
     global _overlay
     scale = settings.MINIMAP_SCALE
     grid = _grid(scale)
-    if _overlay is None:
+    if _overlay is None or _overlay.get_size() != grid.get_size():  # levels differ in size
         _overlay = pygame.Surface(grid.get_size()).convert()
         _overlay.set_alpha(settings.MINIMAP_ALPHA)
 
@@ -70,11 +70,12 @@ def _centered_origin(surface, scale):
 
 def _grid(scale):
     """The static half of the view at this scale, painted on the first frame that asks for it."""
-    grid = _grid_cache.get(scale)
+    key = (world.LEVEL_INDEX, scale)
+    grid = _grid_cache.get(key)
     if grid is None:
         grid = pygame.Surface((world.MAP_WIDTH * scale, world.MAP_HEIGHT * scale)).convert()
         _paint_grid(grid, scale)
-        _grid_cache[scale] = grid
+        _grid_cache[key] = grid
     return grid
 
 
