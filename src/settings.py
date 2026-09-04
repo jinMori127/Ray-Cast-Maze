@@ -15,6 +15,9 @@ TILE_SIZE = 64
 
 MOVE_SPEED = 3.0  # world units (cells) per second
 PLAYER_RADIUS = 0.2  # half-width of the box kept clear of walls, in cells
+EYE_HEIGHT = 0.5  # standing eye height: mid-wall, so wall strips straddle the horizon evenly
+JUMP_SPEED = 2.6  # upward launch, in cells per second
+GRAVITY = 9.0  # downward acceleration; with JUMP_SPEED it peaks at 0.375 cells, short of the 1.0 ceiling
 ROTATION_SPEED = math.radians(150)  # radians per second, for the arrow keys
 MOUSE_SENSITIVITY = math.radians(0.15)  # radians turned per pixel of horizontal mouse motion
 

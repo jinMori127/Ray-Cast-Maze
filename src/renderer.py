@@ -16,8 +16,8 @@ HORIZON = settings.RENDER_HEIGHT // 2
 # distance to the projection plane in rendered pixels, so both axes share one perspective scale
 WALL_SCALE = settings.RENDER_WIDTH / (2 * settings.PLANE_HALF_WIDTH)
 MIN_DISTANCE = 1e-4  # keeps the perspective divide finite when a wall face touches the camera
-CAMERA_HEIGHT = 0.5  # eye sits at mid-wall, which is what puts a wall's base on the horizon line
-FLOOR_SCALE = WALL_SCALE * CAMERA_HEIGHT  # numerator of the row-distance inversion
+# Eye height is player.z, so both projections below take it per frame rather than as a constant:
+# the horizon never moves with height, only the rate at which the floor and wall tops climb to it.
 
 use_mipmaps = True  # toggled at runtime so the minification shimmer can be seen both ways
 use_bilinear = False  # nearest by default, keeping the blocky look these textures were drawn for
@@ -114,8 +114,9 @@ def draw_floor(player, floor_texture):
     nearest_lit = goal_distance - settings.GOAL_LIGHT_RANGE
     farthest_lit = goal_distance + settings.GOAL_LIGHT_RANGE
 
+    floor_scale = WALL_SCALE * player.z  # a jump raises the eye, so each row sees further out
     for row in range(HORIZON, settings.RENDER_HEIGHT):
-        distance = FLOOR_SCALE / (row + 0.5 - HORIZON)
+        distance = floor_scale / (row + 0.5 - HORIZON)
         world_x = player.x + distance * (dir_x + _COLUMN_T * plane_x)
         world_y = player.y + distance * (dir_y + _COLUMN_T * plane_y)
         tex_x = np.floor(world_x * size).astype(np.intp) % size
@@ -140,7 +141,9 @@ def draw_world(player, hits, wall_textures, floor_texture):
         # the strip is never clamped: a wall taller than the screen must crop, not squash,
         # or its texels would compress as you walk into it instead of magnifying
         strip_height = WALL_SCALE / max(perp_dist, MIN_DISTANCE)
-        top = HORIZON - strip_height / 2
+        # the wall's top (world height 1) projects to HORIZON + WALL_SCALE * (z - 1) / d, so
+        # raising the eye slides the whole strip down the screen without resizing it
+        top = HORIZON + strip_height * (player.z - 1.0)
         first = max(0, math.ceil(top))
         last = min(settings.RENDER_HEIGHT, math.ceil(top + strip_height))
         if first >= last:
