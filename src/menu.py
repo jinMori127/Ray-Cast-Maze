@@ -88,6 +88,13 @@ def pick(pos, cleared):
     return None
 
 
+def locked_at(pos, cleared):
+    """True when the pointer is over a level card that has not been unlocked yet."""
+    open_levels = progress.unlocked(cleared)
+    return any(index >= open_levels and rect.collidepoint(pos)
+               for index, rect in enumerate(CARD_RECTS))
+
+
 def draw(surface, cleared, pointer):
     """Title, one card per level, the quit button and the hint line."""
     title_font, number_font, name_font, status_font = _font_set()

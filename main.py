@@ -1,6 +1,6 @@
 import pygame
 
-from src import menu, minimap, progress, raycaster, renderer, settings, textures, world
+from src import audio, menu, minimap, progress, raycaster, renderer, settings, textures, world
 from src.levels import LEVELS
 from src.player import Player
 
@@ -9,7 +9,9 @@ class Game:
     """Window, timing, and the frame loop across the two screens: level select and a run."""
 
     def __init__(self):
+        pygame.mixer.pre_init(*settings.AUDIO_MIXER)
         pygame.init()
+        audio.load()  # a machine with no sound device just plays nothing
         self.screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
         pygame.display.set_caption(settings.CAPTION)
         self.clock = pygame.time.Clock()
@@ -96,9 +98,15 @@ class Game:
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
             return
         choice = menu.pick(event.pos, self.cleared)
+        if choice is None:
+            if menu.locked_at(event.pos, self.cleared):
+                audio.play(audio.LOCKED)
+            return
+        audio.play(audio.SELECT)
         if choice == menu.QUIT:
+            audio.wait(audio.SELECT)  # let the click finish before the window goes
             self.running = False
-        elif choice is not None:
+        else:
             self.start_level(choice)
 
     def handle_run_event(self, event):

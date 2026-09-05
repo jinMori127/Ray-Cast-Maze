@@ -117,6 +117,10 @@ There are four levels, in increasing order of how far the exit sits from the spa
 levels show a padlock and cannot be clicked. Progress is written to `progress.json` next to the
 game, so unlocks survive closing it. Delete that file to reset.
 
+Clicking a card plays a short blip — a rising one for a level that opens, a low one for a level
+still locked. Like the textures, the sounds are synthesised at start-up rather than loaded from
+files, so the project ships no audio assets.
+
 **Steps.** Levels 2–4 contain mossy one-cell blocks. They are too tall to walk through but low
 enough to see over and to jump onto — land on top, walk along, and drop off the far side.
 
@@ -517,22 +521,23 @@ wrong, and you can see that instantly from above in a way you never could from i
 
 ```
 Ray-Cast-Maze/
-├── main.py                  160  Window, game loop, the two screens, HUD and win banner
+├── main.py                  190  Window, game loop, the two screens, HUD and win banner
 ├── requirements.txt              pygame-ce and numpy
 ├── progress.json                 Written at runtime — how many levels are cleared (gitignored)
 ├── assets/
 │   └── screenshots/              The images in this README
 └── src/
-    ├── settings.py          107  Every tunable constant: sizes, speeds, palette, fog, light
-    ├── levels.py            100  The four map grids, with spawn, facing and exit for each
-    ├── world.py              68  The active level and the queries rays and the player run
-    ├── player.py             81  Position, look angle, eye height, movement, collision, jump
-    ├── raycaster.py          88  DDA traversal, per-column ray fan, u derivation
-    ├── renderer.py          209  Projection, wall strips, floor and step-top casting, fog, light
-    ├── textures.py          139  Procedural textures, mip pyramids, nearest and bilinear samplers
-    ├── minimap.py           121  Corner overlay and the full-screen Tab debug view
-    ├── menu.py              118  The level select screen
-    └── progress.py           22  Reading and writing the unlock count
+    ├── settings.py          127  Every tunable constant: sizes, speeds, palette, fog, light
+    ├── levels.py            108  The four map grids, with spawn, facing and exit for each
+    ├── world.py              92  The active level and the queries rays and the player run
+    ├── player.py            100  Position, look angle, eye height, movement, collision, jump
+    ├── raycaster.py         106  DDA traversal, per-column ray fan, u derivation
+    ├── renderer.py          258  Projection, wall strips, floor and step-top casting, fog, light
+    ├── textures.py          182  Procedural textures, mip pyramids, nearest and bilinear samplers
+    ├── minimap.py           160  Corner overlay and the full-screen Tab debug view
+    ├── menu.py              159  The level select screen
+    ├── audio.py              68  Menu click sounds, synthesised at start-up like the textures
+    └── progress.py           31  Reading and writing the unlock count
 ```
 
 Conventions that hold everywhere:

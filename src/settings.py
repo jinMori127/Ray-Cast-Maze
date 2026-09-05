@@ -93,6 +93,10 @@ MENU_CLEARED_TEXT = "CLEARED"
 MENU_OPEN_TEXT = "PLAY"
 MENU_QUIT_TEXT = "QUIT"
 
+# rate, signed 16-bit, stereo, and a buffer short enough that the click lands on the press
+AUDIO_MIXER = (44100, -16, 2, 512)
+UI_VOLUME = 0.30  # menu click loudness, 0..1
+
 DEBUG_BACKGROUND_COLOR = (10, 11, 14)  # outside the grid
 DEBUG_FLOOR_COLOR = (198, 202, 210)  # walkable cells — bright so corridors read as paths
 DEBUG_GRID_COLOR = (122, 128, 140)  # cell borders, mid tone to stay visible on floor and walls
